@@ -6,7 +6,21 @@ $Right => ''
 <%INIT>
 my @results;
 
+my $ACL = RT::ACL->new($session{CurrentUser});
+$ACL->UnLimit;
+
+while (my $ACE = $ACL->Next) {
+    my $principal = $ACE->PrincipalObj;
+    my $object = $ACE->Object;
+
+    push @results, {
+        principal => { type => $principal->PrincipalType, label => $principal->DisplayName },
+        object    => { class => ref($object), id => $object->id },
+        right     => $ACE->RightName,
+    };
+}
+
 $r->content_type('application/json; charset=utf-8');
-$m->out(JSON({ results => \@results }));
+$m->out(JSON({ count => $ACL->Count, results => \@results }));
 $m->abort;
 </%INIT>
