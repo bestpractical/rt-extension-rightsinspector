@@ -1,5 +1,10 @@
 jQuery(function () {
-    var template = Handlebars.compile(jQuery('script#debugger-result').html());
+    var template = jQuery('script#debugger-result').html();
+    if (!template) {
+        return;
+    }
+
+    var renderItem = Handlebars.compile(template);
     var form = jQuery('form#rights-debugger');
     var display = form.find('.results');
 
@@ -14,7 +19,7 @@ jQuery(function () {
                 display.empty(); // just in case of race condition
                 var items = response.results;
                 jQuery.each(items, function (i, item) {
-                    display.append(template(item));
+                    display.append(renderItem(item));
                 });
             },
             error: function (xhr, reason) {
