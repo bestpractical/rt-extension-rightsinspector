@@ -4,6 +4,7 @@ use warnings;
 
 our $VERSION = '0.01';
 
+RT->AddStyleSheets("rights-debugger.css");
 RT->AddJavaScript("rights-debugger.js");
 RT->AddJavaScript("handlebars-4.0.6.min.js");
 

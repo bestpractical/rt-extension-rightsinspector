@@ -1,0 +1,13 @@
+#rights-debugger .search input, 
+#rights-debugger .results .result .cell {
+    display: inline-block;
+    width: 15em;
+}
+
+#rights-debugger .results .result .cell {
+    padding: 2px;
+}
+
+#rights-debugger .results .result:nth-child(even) {
+    background-color: #DBE5F0;
+}
