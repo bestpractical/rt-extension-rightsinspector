@@ -4,6 +4,8 @@ use warnings;
 
 our $VERSION = '0.01';
 
+RT->AddJavaScript("rights-debugger.js");
+
 =head1 NAME
 
 RT-Extension-RightsDebugger - 

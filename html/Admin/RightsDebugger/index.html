@@ -1,6 +1,16 @@
 <& /Admin/Elements/Header, Title => loc("Rights Debugger") &>
 <& /Elements/Tabs &>
 
+<form action="<%RT->Config->Get('WebPath')%>/Helpers/RightsDebugger/Search" id="rights-debugger">
+  <div class="search">
+    <input type="text" name="principal" placeholder="Principal">
+    <input type="text" name="object" placeholder="Object">
+    <input type="text" name="right" placeholder="Right">
+  </div>
+  <div class="results">
+  </div>
+</form>
+
 <%INIT>
 unless ($session{'CurrentUser'}->HasRight( Object=> RT->System, Right => 'SuperUser')) {
     Abort(loc('This feature is only available to system administrators.'));
