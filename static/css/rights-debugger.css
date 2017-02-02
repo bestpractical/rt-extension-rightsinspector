@@ -11,3 +11,7 @@
 #rights-debugger .results .result:nth-child(even) {
     background-color: #DBE5F0;
 }
+
+#rights-debugger .results .result .match {
+    font-weight: bold;
+}

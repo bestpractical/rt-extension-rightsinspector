@@ -9,7 +9,7 @@ if ($ARGS{right}) {
     $has_search = 1;
     $ACL->Limit(
         FIELD         => 'RightName',
-        OPERATOR      => 'STARTSWITH',
+        OPERATOR      => 'LIKE',
         VALUE         => $ARGS{right},
         CASESENSITIVE => 0,
     );

@@ -14,13 +14,13 @@
 <script type="text/x-template" id="debugger-result">
   <div class="result">
     <div class="principal cell">
-        {{principal.type}} {{principal.label}}
+        {{item.principal.type}} {{item.principal.label}}
     </div>
     <div class="object cell">
-        {{object.class}} #{{object.id}}
+        {{item.object.class}} #{{item.object.id}}
     </div>
     <div class="right cell">
-        {{right}}
+        {{search_highlight item.right search.right}}
     </div>
     <div class="revoke cell"><button>Revoke</button></div>
   </div>
