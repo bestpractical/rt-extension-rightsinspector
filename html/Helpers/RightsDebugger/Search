@@ -1,13 +1,21 @@
-<%ARGS>
-$Principal => ''
-$Object => ''
-$Right => ''
-</%ARGS>
 <%INIT>
 my @results;
 
 my $ACL = RT::ACL->new($session{CurrentUser});
-$ACL->UnLimit;
+
+my $has_search = 0;
+
+if ($ARGS{right}) {
+    $has_search = 1;
+    $ACL->Limit(
+        FIELD         => 'RightName',
+        OPERATOR      => 'STARTSWITH',
+        VALUE         => $ARGS{right},
+        CASESENSITIVE => 0,
+    );
+}
+
+$ACL->UnLimit unless $has_search;
 
 while (my $ACE = $ACL->Next) {
     my $principal = $ACE->PrincipalObj;
