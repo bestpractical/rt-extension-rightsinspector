@@ -13,10 +13,31 @@ sub SerializeACE {
     my $ACE = shift;
 
     return {
-        principal => $self->SerializeRecord($ACE->PrincipalObj),
-        object    => $self->SerializeRecord($ACE->Object),
-        right     => $ACE->RightName,
+        principal      => $self->SerializeRecord($ACE->PrincipalObj),
+        object         => $self->SerializeRecord($ACE->Object),
+        right          => $ACE->RightName,
+        disable_revoke => $self->DisableRevoke($ACE),
     };
+}
+
+sub DisableRevoke {
+    my $self = shift;
+    my $ACE = shift;
+    my $Principal = $ACE->PrincipalObj;
+    my $Object    = $ACE->Object;
+    my $Right     = $ACE->RightName;
+
+    if ($Principal->Object->Domain eq 'ACLEquivalence') {
+        my $User = $Principal->Object->InstanceObj;
+        if ($User->Id == RT->SystemUser->Id && $Object->isa('RT::System') && $Right eq 'SuperUser') {
+            return 1;
+        }
+        if ($User->Id == RT->Nobody->Id && $Object->isa('RT::System') && $Right eq 'OwnTicket') {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 sub SerializeRecord {
