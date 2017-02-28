@@ -3,9 +3,9 @@
 
 <form action="<%RT->Config->Get('WebPath')%>/Helpers/RightsDebugger/Search" id="rights-debugger">
   <div class="search">
-    <input type="text" name="principal" placeholder="Principal">
-    <input type="text" name="object" placeholder="Object">
-    <input type="text" name="right" placeholder="Right">
+    <input value="<% $ARGS{Principal} %>" type="text" name="principal" placeholder="Principal">
+    <input value="<% $ARGS{Object} %>" type="text" name="object" placeholder="Object">
+    <input value="<% $ARGS{Right} %>" type="text" name="right" placeholder="Right">
     <span class="loading"><img src="<%RT->Config->Get('WebPath')%>/static/images/loading.gif" alt="<%loc('Loading')%>" title="<%loc('Loading')%>" /></span>
   </div>
   <div class="results">

@@ -8,6 +8,9 @@ RT->AddStyleSheets("rights-debugger.css");
 RT->AddJavaScript("rights-debugger.js");
 RT->AddJavaScript("handlebars-4.0.6.min.js");
 
+
+$RT::Interface::Web::WHITELISTED_COMPONENT_ARGS{'/Admin/RightsDebugger/index.html'} = ['Principal', 'Object', 'Right'];
+
 sub SerializeACE {
     my $self = shift;
     my $ACE = shift;
