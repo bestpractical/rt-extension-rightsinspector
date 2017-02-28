@@ -17,15 +17,24 @@ if ($ARGS{right}) {
 
 $ACL->UnLimit unless $has_search;
 
+for my $key (qw/principal object/) {
+    if (my $search = $ARGS{$key}) {
+        my @matchers;
+        for my $word (split ' ', $search) {
+            push @matchers, qr/\Q$word\E/i;
+        }
+        $ARGS{$key} = \@matchers;
+    }
+}
+
 ACE: while (my $ACE = $ACL->Next) {
     my $serialized = RT::Extension::RightsDebugger->SerializeACE($ACE);
 
     # this is hacky, but doing the searching in SQL is absolutely a nonstarter
     for my $key (qw/principal object/) {
-        if (my $search = $ARGS{$key}) {
+        if (my $matchers = $ARGS{$key}) {
             my $record = $serialized->{$key};
-            for my $word (split ' ', $search) {
-                my $re = qr/\Q$word\E/i;
+            for my $re (@$matchers) {
                 next ACE unless $record->{class}  =~ $re
                              || $record->{id}     =~ $re
                              || $record->{label}  =~ $re
