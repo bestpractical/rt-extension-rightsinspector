@@ -33,6 +33,14 @@ sub SerializeRecord {
             $principal->Load($record->Instance);
             $record = $principal->Object;
         }
+        elsif ($record->Domain =~ /-Role$/) {
+            my ($id) = $record->Name =~ /^RT::CustomRole-(\d+)$/;
+            if ($id) {
+                my $role = RT::CustomRole->new($record->CurrentUser);
+                $role->Load($id);
+                $record = $role;
+            }
+        }
     }
 
     my $type = ref($record);
@@ -58,10 +66,6 @@ sub SerializeRecord {
 sub LabelForRecord {
     my $self = shift;
     my $object = shift;
-
-    if ($object->isa('RT::Group')) {
-        return $object->Label;
-    }
 
     return $object->Name;
 }
