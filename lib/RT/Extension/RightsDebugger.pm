@@ -43,23 +43,12 @@ sub SerializeRecord {
         }
     }
 
-    my $type = ref($record);
-    $type =~ s/^RT:://;
-
-    my $show_detail = 1;
-    $show_detail = 0 if $record->isa('RT::System');
-
-    my $show_id = 1;
-    $show_id = 0 if $record->isa('RT::Group') && $record->Domain eq 'SystemInternal';
-
     return {
         class       => ref($record),
         id          => $record->id,
         label       => $self->LabelForRecord($record),
+        detail      => $self->DetailForRecord($record),
         url         => $self->URLForRecord($record),
-        type        => $type,
-        show_detail => $show_detail,
-        show_id     => $show_id,
     };
 }
 
@@ -68,6 +57,20 @@ sub LabelForRecord {
     my $record = shift;
 
     return $record->Name;
+}
+
+sub DetailForRecord {
+    my $self = shift;
+    my $record = shift;
+
+    return undef if $record->isa('RT::System');
+
+    my $type = ref($record);
+    $type =~ s/^RT:://;
+
+    return $type if $record->isa('RT::Group') && $record->Domain eq 'SystemInternal';
+
+    return $type . ' #' . $record->id;
 }
 
 sub URLForRecord {
