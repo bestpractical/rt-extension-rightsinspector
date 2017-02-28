@@ -63,14 +63,38 @@ sub DetailForRecord {
     my $self = shift;
     my $record = shift;
 
-    return undef if $record->isa('RT::System');
+    my $id = $record->Id;
+
+    return 'Global System' if $record->isa('RT::System');
+
+    return 'System User' if $record->isa('RT::User')
+                         && ($id == RT->SystemUser->Id || $id == RT->Nobody->Id);
+
+    # like RT::Group->SelfDescription but without the redundant labels
+    if ($record->isa('RT::Group')) {
+        if ($record->Domain eq 'RT::System-Role') {
+            return "System Role";
+        }
+        elsif ($record->Domain eq 'RT::Queue-Role') {
+            return "Queue Role";
+        }
+        elsif ($record->Domain eq 'RT::Ticket-Role') {
+            return "Ticket Role";
+        }
+        elsif ($record->RoleClass) {
+            my $class = $record->RoleClass;
+            $class =~ s/^RT:://i;
+            return "$class Role";
+        }
+        elsif ($record->Domain eq 'SystemInternal') {
+            return "System Group";
+        }
+    }
 
     my $type = ref($record);
     $type =~ s/^RT:://;
 
-    return $type if $record->isa('RT::Group') && $record->Domain eq 'SystemInternal';
-
-    return $type . ' #' . $record->id;
+    return $type . ' #' . $id;
 }
 
 sub URLForRecord {
