@@ -18,6 +18,11 @@
     display: inline;
 }
 
+#rights-debugger.error .results {
+    color: red;
+    font-weight: bold;
+}
+
 #rights-debugger.refreshing .results {
     opacity: 0.5;
 }

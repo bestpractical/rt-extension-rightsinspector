@@ -51,8 +51,9 @@ jQuery(function () {
             data: search,
             timeout: 30000, /* 30 seconds */
             success: function (response) {
-                form.removeClass('refreshing');
-                display.empty(); // just in case of race condition
+                form.removeClass('refreshing').removeClass('error');
+                display.empty();
+
                 var items = response.results;
                 jQuery.each(items, function (i, item) {
                     display.append(renderItem({ search: search, item: item }));
@@ -62,9 +63,15 @@ jQuery(function () {
                     var revokeButton = buttonForAction(key);
                     displayRevoking(revokeButton);
                 });
-
             },
             error: function (xhr, reason) {
+                if (reason == 'abort') {
+                    return;
+                }
+
+                form.removeClass('refreshing').addClass('error');
+                display.empty();
+                display.text('Error: ' + xhr.statusText);
             }
         });
     };
