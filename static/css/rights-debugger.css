@@ -33,7 +33,7 @@
 }
 
 #rights-debugger .results .result:nth-child(even) {
-    background-color: #DBE5F0;
+    background-color: rgb(236, 246, 252);
 }
 
 #rights-debugger .results .result .match {
