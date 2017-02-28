@@ -85,7 +85,7 @@ sub URLForRecord {
         return RT->Config->Get('WebURL') . 'Admin/Users/Modify.html?id=' . $id;
     }
     elsif ($object->isa('RT::Group')) {
-        return undef if $object->Domain eq 'SystemInternal';
+        return undef unless $object->Domain eq 'UserDefined';
         return RT->Config->Get('WebURL') . 'Admin/Groups/Modify.html?id=' . $id;
     }
     elsif ($object->isa('RT::CustomField')) {
