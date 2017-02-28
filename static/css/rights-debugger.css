@@ -8,9 +8,10 @@
     display: none;
 }
 
-#rights-debugger .search .loading img {
-    height: 1em;
-    width: 1em;
+#rights-debugger .search .loading img,
+#rights-debugger .results .revoke img {
+    height: 1.5em;
+    width: 1.5em;
 }
 
 #rights-debugger.refreshing .search .loading {

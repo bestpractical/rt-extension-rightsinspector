@@ -18,8 +18,19 @@ jQuery(function () {
     var renderItem = Handlebars.compile(resultTemplate);
     var form = jQuery('form#rights-debugger');
     var display = form.find('.results');
+    var loading = form.find('.search .loading');
 
+    var revoking = {};
     var existingRequest;
+
+    var buttonForAction = function (action) {
+        return display.find('.revoke button[data-action="' + action + '"]');
+    };
+
+    var displayRevoking = function (button) {
+        button.addClass('ui-state-disabled').prop('disabled', true);
+        button.after(loading.clone());
+    };
 
     var refreshResults = function () {
         form.addClass('refreshing');
@@ -46,11 +57,48 @@ jQuery(function () {
                 jQuery.each(items, function (i, item) {
                     display.append(renderItem({ search: search, item: item }));
                 });
+
+                jQuery.each(revoking, function (key, value) {
+                    var revokeButton = buttonForAction(key);
+                    displayRevoking(revokeButton);
+                });
+
             },
             error: function (xhr, reason) {
             }
         });
     };
+
+    display.on('click', '.revoke button', function (e) {
+        e.preventDefault();
+        var button = jQuery(e.target);
+        var action = button.data('action');
+
+        displayRevoking(button);
+
+        revoking[action] = 1;
+
+        jQuery.ajax({
+            url: action,
+            timeout: 30000, /* 30 seconds */
+            success: function (response) {
+                button = buttonForAction(action);
+                if (!button.length) {
+                    alert(response.msg);
+                }
+                else {
+                    button.closest('.revoke').text(response.msg);
+                }
+                delete revoking[action];
+            },
+            error: function (xhr, reason) {
+                button = buttonForAction(action);
+                button.closest('.revoke').text(reason);
+                delete revoking[action];
+                alert(reason);
+            }
+        });
+    });
 
     form.find('.search input').on('input', function () {
         refreshResults();

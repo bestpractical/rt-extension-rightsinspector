@@ -28,7 +28,7 @@
     <div class="object cell">{{> render_record item.object}}</div>
     <div class="right cell">{{search_highlight item.right search.right}}</div>
     <div class="revoke cell">
-        <button {{#if item.disable_revoke}}class="ui-state-disabled" disabled="disabled"{{/if}}>Revoke</button>
+        <button data-action="<%RT->Config->Get('WebPath')%>/Helpers/RightsDebugger/Revoke?id={{item.ace.id}}" {{#if item.disable_revoke}}class="ui-state-disabled" disabled="disabled"{{/if}}>Revoke</button>
     </div>
   </div>
 </script>

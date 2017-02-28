@@ -16,6 +16,7 @@ sub SerializeACE {
         principal      => $self->SerializeRecord($ACE->PrincipalObj),
         object         => $self->SerializeRecord($ACE->Object),
         right          => $ACE->RightName,
+        ace            => { id => $ACE->Id },
         disable_revoke => $self->DisableRevoke($ACE),
     };
 }
