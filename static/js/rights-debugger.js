@@ -21,6 +21,7 @@ jQuery(function () {
 
     var refreshResults = function () {
         form.addClass('refreshing');
+        form.find('button').addClass('ui-state-disabled').prop('disabled', true);
 
         var serialized = form.serializeArray();
         var search = {};
