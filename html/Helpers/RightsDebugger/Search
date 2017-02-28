@@ -23,12 +23,14 @@ ACE: while (my $ACE = $ACL->Next) {
     # this is hacky, but doing the searching in SQL is absolutely a nonstarter
     for my $key (qw/principal object/) {
         if (my $search = $ARGS{$key}) {
-            my $re = qr/\Q$search\E/i;
             my $record = $serialized->{$key};
-            next ACE unless $record->{class}  =~ $re
-                         || $record->{id}     =~ $re
-                         || $record->{label}  =~ $re
-                         || $record->{detail} =~ $re;
+            for my $word (split ' ', $search) {
+                my $re = qr/\Q$word\E/i;
+                next ACE unless $record->{class}  =~ $re
+                             || $record->{id}     =~ $re
+                             || $record->{label}  =~ $re
+                             || $record->{detail} =~ $re;
+            }
         }
     }
 
