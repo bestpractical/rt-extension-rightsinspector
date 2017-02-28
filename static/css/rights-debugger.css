@@ -37,6 +37,7 @@
 }
 
 #rights-debugger .results .result .match {
+    background-color: rgb(255, 253, 56);
     font-weight: bold;
 }
 
