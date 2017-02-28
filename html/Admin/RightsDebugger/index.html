@@ -14,18 +14,18 @@
 
 <script type="text/x-template" id="debugger-record-template">
   {{#if url}}
-      <a target="_blank" href="{{url}}">{{label}}</a>
+      <a target="_blank" href="{{url}}">{{search_highlight label search}}</a>
   {{else}}
-      {{label}}
+      {{search_highlight label search}}
   {{/if}}
 
-  <span class="detail">{{detail}}</span>
+  <span class="detail">{{search_highlight detail search}}</span>
 </script>
 
 <script type="text/x-template" id="debugger-result-template">
   <div class="result">
-    <div class="principal cell">{{> render_record item.principal}}</div>
-    <div class="object cell">{{> render_record item.object}}</div>
+    <div class="principal cell">{{> render_record item.principal search=search.principal}}</div>
+    <div class="object cell">{{> render_record item.object search=search.object}}</div>
     <div class="right cell">{{search_highlight item.right search.right}}</div>
     <div class="revoke cell">
         <button data-action="<%RT->Config->Get('WebPath')%>/Helpers/RightsDebugger/Revoke?id={{item.ace.id}}" {{#if item.disable_revoke}}class="ui-state-disabled" disabled="disabled"{{/if}}>Revoke</button>
