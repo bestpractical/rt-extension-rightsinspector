@@ -20,7 +20,7 @@ jQuery(function () {
     var display = form.find('.results');
 
     var refreshResults = function () {
-        display.empty();
+        form.addClass('refreshing');
 
         var serialized = form.serializeArray();
         var search = {};
@@ -33,6 +33,7 @@ jQuery(function () {
             data: search,
             timeout: 30000, /* 30 seconds */
             success: function (response) {
+                form.removeClass('refreshing');
                 display.empty(); // just in case of race condition
                 var items = response.results;
                 jQuery.each(items, function (i, item) {

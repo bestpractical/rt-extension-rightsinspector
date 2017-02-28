@@ -4,6 +4,23 @@
     width: 15em;
 }
 
+#rights-debugger .search .loading {
+    display: none;
+}
+
+#rights-debugger .search .loading img {
+    height: 1em;
+    width: 1em;
+}
+
+#rights-debugger.refreshing .search .loading {
+    display: inline;
+}
+
+#rights-debugger.refreshing .results {
+    opacity: 0.5;
+}
+
 #rights-debugger .results .result .cell {
     padding: 2px;
     vertical-align: top;
