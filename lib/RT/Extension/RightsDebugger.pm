@@ -65,39 +65,39 @@ sub SerializeRecord {
 
 sub LabelForRecord {
     my $self = shift;
-    my $object = shift;
+    my $record = shift;
 
-    return $object->Name;
+    return $record->Name;
 }
 
 sub URLForRecord {
     my $self = shift;
-    my $object = shift;
-    my $id = $object->id;
+    my $record = shift;
+    my $id = $record->id;
 
-    if ($object->isa('RT::Queue')) {
+    if ($record->isa('RT::Queue')) {
         return RT->Config->Get('WebURL') . 'Admin/Queues/Modify.html?id=' . $id;
     }
-    elsif ($object->isa('RT::User')) {
+    elsif ($record->isa('RT::User')) {
         return undef if $id == RT->SystemUser->id
                      || $id == RT->Nobody->id;
 
         return RT->Config->Get('WebURL') . 'Admin/Users/Modify.html?id=' . $id;
     }
-    elsif ($object->isa('RT::Group')) {
-        return undef unless $object->Domain eq 'UserDefined';
+    elsif ($record->isa('RT::Group')) {
+        return undef unless $record->Domain eq 'UserDefined';
         return RT->Config->Get('WebURL') . 'Admin/Groups/Modify.html?id=' . $id;
     }
-    elsif ($object->isa('RT::CustomField')) {
+    elsif ($record->isa('RT::CustomField')) {
         return RT->Config->Get('WebURL') . 'Admin/CustomFields/Modify.html?id=' . $id;
     }
-    elsif ($object->isa('RT::Class')) {
+    elsif ($record->isa('RT::Class')) {
         return RT->Config->Get('WebURL') . 'Admin/Articles/Classes/Modify.html?id=' . $id;
     }
-    elsif ($object->isa('RT::Catalog')) {
+    elsif ($record->isa('RT::Catalog')) {
         return RT->Config->Get('WebURL') . 'Admin/Assets/Catalogs/Modify.html?id=' . $id;
     }
-    elsif ($object->isa('RT::CustomRole')) {
+    elsif ($record->isa('RT::CustomRole')) {
         return RT->Config->Get('WebURL') . 'Admin/CustomRoles/Modify.html?id=' . $id;
     }
 
