@@ -19,6 +19,8 @@ jQuery(function () {
     var form = jQuery('form#rights-debugger');
     var display = form.find('.results');
 
+    var existingRequest;
+
     var refreshResults = function () {
         form.addClass('refreshing');
         form.find('button').addClass('ui-state-disabled').prop('disabled', true);
@@ -29,7 +31,11 @@ jQuery(function () {
             search[field.name] = field.value;
         });
 
-        jQuery.ajax({
+        if (existingRequest) {
+            existingRequest.abort();
+        }
+
+        existingRequest = jQuery.ajax({
             url: form.attr('action'),
             data: search,
             timeout: 30000, /* 30 seconds */
