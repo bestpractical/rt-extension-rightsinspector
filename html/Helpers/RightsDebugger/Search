@@ -17,8 +17,22 @@ if ($ARGS{right}) {
 
 $ACL->UnLimit unless $has_search;
 
-while (my $ACE = $ACL->Next) {
-    push @results, RT::Extension::RightsDebugger->SerializeACE($ACE);
+ACE: while (my $ACE = $ACL->Next) {
+    my $serialized = RT::Extension::RightsDebugger->SerializeACE($ACE);
+
+    # this is hacky, but doing the searching in SQL is absolutely a nonstarter
+    for my $key (qw/principal object/) {
+        if (my $search = $ARGS{$key}) {
+            my $re = qr/\Q$search\E/i;
+            my $record = $serialized->{$key};
+            next ACE unless $record->{class}  =~ $re
+                         || $record->{id}     =~ $re
+                         || $record->{label}  =~ $re
+                         || $record->{detail} =~ $re;
+        }
+    }
+
+    push @results, $serialized;
 }
 
 $r->content_type('application/json; charset=utf-8');
