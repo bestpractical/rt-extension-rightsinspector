@@ -11,17 +11,28 @@
   </div>
 </form>
 
-<script type="text/x-template" id="debugger-result">
+<script type="text/x-template" id="debugger-record-template">
+  {{#if url}}
+      <a target="_blank" href="{{url}}">{{label}}</a>
+  {{else}}
+      {{label}}
+  {{/if}}
+
+  {{#if show_detail}}
+    <span class="detail">
+      {{type}}
+      {{#if show_id}}
+        #{{id}}
+      {{/if}}
+    </span>
+  {{/if}}
+</script>
+
+<script type="text/x-template" id="debugger-result-template">
   <div class="result">
-    <div class="principal cell">
-        {{item.principal.type}} {{item.principal.label}}
-    </div>
-    <div class="object cell">
-        {{item.object.class}} #{{item.object.id}}
-    </div>
-    <div class="right cell">
-        {{search_highlight item.right search.right}}
-    </div>
+    <div class="principal cell">{{> render_record item.principal}}</div>
+    <div class="object cell">{{> render_record item.object}}</div>
+    <div class="right cell">{{search_highlight item.right search.right}}</div>
     <div class="revoke cell"><button>Revoke</button></div>
   </div>
 </script>

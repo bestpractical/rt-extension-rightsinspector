@@ -1,8 +1,11 @@
 jQuery(function () {
-    var template = jQuery('script#debugger-result').html();
-    if (!template) {
+    var recordTemplate = jQuery('script#debugger-record-template').html();
+    var resultTemplate = jQuery('script#debugger-result-template').html();
+    if (!recordTemplate || !resultTemplate) {
         return;
     }
+
+    Handlebars.registerPartial('render_record', recordTemplate);
 
     Handlebars.registerHelper('search_highlight', function (text, term) {
         // this is simplistic; better would be to highlight on the
@@ -12,7 +15,7 @@ jQuery(function () {
         return new Handlebars.SafeString(text);
     });
 
-    var renderItem = Handlebars.compile(template);
+    var renderItem = Handlebars.compile(resultTemplate);
     var form = jQuery('form#rights-debugger');
     var display = form.find('.results');
 

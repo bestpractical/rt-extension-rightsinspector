@@ -18,14 +18,7 @@ if ($ARGS{right}) {
 $ACL->UnLimit unless $has_search;
 
 while (my $ACE = $ACL->Next) {
-    my $principal = $ACE->PrincipalObj;
-    my $object = $ACE->Object;
-
-    push @results, {
-        principal => { type => $principal->PrincipalType, label => $principal->DisplayName },
-        object    => { class => ref($object), id => $object->id },
-        right     => $ACE->RightName,
-    };
+    push @results, RT::Extension::RightsDebugger->SerializeACE($ACE);
 }
 
 $r->content_type('application/json; charset=utf-8');

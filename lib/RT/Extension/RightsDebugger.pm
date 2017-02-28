@@ -8,6 +8,98 @@ RT->AddStyleSheets("rights-debugger.css");
 RT->AddJavaScript("rights-debugger.js");
 RT->AddJavaScript("handlebars-4.0.6.min.js");
 
+sub SerializeACE {
+    my $self = shift;
+    my $ACE = shift;
+
+    return {
+        principal => $self->SerializeRecord($ACE->PrincipalObj),
+        object    => $self->SerializeRecord($ACE->Object),
+        right     => $ACE->RightName,
+    };
+}
+
+sub SerializeRecord {
+    my $self = shift;
+    my $record = shift;
+
+    if ($record->isa('RT::Principal')) {
+        $record = $record->Object;
+    }
+
+    if ($record->isa('RT::Group')) {
+        if ($record->Domain eq 'ACLEquivalence') {
+            my $principal = RT::Principal->new($record->CurrentUser);
+            $principal->Load($record->Instance);
+            $record = $principal->Object;
+        }
+    }
+
+    my $type = ref($record);
+    $type =~ s/^RT:://;
+
+    my $show_detail = 1;
+    $show_detail = 0 if $record->isa('RT::System');
+
+    my $show_id = 1;
+    $show_id = 0 if $record->isa('RT::Group') && $record->Domain eq 'SystemInternal';
+
+    return {
+        class       => ref($record),
+        id          => $record->id,
+        label       => $self->LabelForRecord($record),
+        url         => $self->URLForRecord($record),
+        type        => $type,
+        show_detail => $show_detail,
+        show_id     => $show_id,
+    };
+}
+
+sub LabelForRecord {
+    my $self = shift;
+    my $object = shift;
+
+    if ($object->isa('RT::Group')) {
+        return $object->Label;
+    }
+
+    return $object->Name;
+}
+
+sub URLForRecord {
+    my $self = shift;
+    my $object = shift;
+    my $id = $object->id;
+
+    if ($object->isa('RT::Queue')) {
+        return RT->Config->Get('WebURL') . 'Admin/Queues/Modify.html?id=' . $id;
+    }
+    elsif ($object->isa('RT::User')) {
+        return undef if $id == RT->SystemUser->id
+                     || $id == RT->Nobody->id;
+
+        return RT->Config->Get('WebURL') . 'Admin/Users/Modify.html?id=' . $id;
+    }
+    elsif ($object->isa('RT::Group')) {
+        return undef if $object->Domain eq 'SystemInternal';
+        return RT->Config->Get('WebURL') . 'Admin/Groups/Modify.html?id=' . $id;
+    }
+    elsif ($object->isa('RT::CustomField')) {
+        return RT->Config->Get('WebURL') . 'Admin/CustomFields/Modify.html?id=' . $id;
+    }
+    elsif ($object->isa('RT::Class')) {
+        return RT->Config->Get('WebURL') . 'Admin/Articles/Classes/Modify.html?id=' . $id;
+    }
+    elsif ($object->isa('RT::Catalog')) {
+        return RT->Config->Get('WebURL') . 'Admin/Assets/Catalogs/Modify.html?id=' . $id;
+    }
+    elsif ($object->isa('RT::CustomRole')) {
+        return RT->Config->Get('WebURL') . 'Admin/CustomRoles/Modify.html?id=' . $id;
+    }
+
+    return undef;
+}
+
 =head1 NAME
 
 RT-Extension-RightsDebugger - 

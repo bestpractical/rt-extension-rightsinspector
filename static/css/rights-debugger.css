@@ -6,6 +6,7 @@
 
 #rights-debugger .results .result .cell {
     padding: 2px;
+    vertical-align: top;
 }
 
 #rights-debugger .results .result:nth-child(even) {
@@ -15,3 +16,10 @@
 #rights-debugger .results .result .match {
     font-weight: bold;
 }
+
+#rights-debugger .results .result .detail {
+    font-size: 80%;
+    color: #AAA;
+    display: block;
+}
+
