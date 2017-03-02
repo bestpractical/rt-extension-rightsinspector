@@ -13,13 +13,22 @@
 </form>
 
 <script type="text/x-template" id="debugger-record-template">
-  {{#if url}}
-      <a target="_blank" href="{{url}}">{{{label_highlighted}}}</a>
-  {{else}}
-      {{{label_highlighted}}}
-  {{/if}}
+  <span class="record {{#if disabled}}disabled{{/if}}">
+    <span class="name">
+      {{#if url}}
+        <a target="_blank" href="{{url}}">{{{label_highlighted}}}</a>
+      {{else}}
+        {{{label_highlighted}}}
+      {{/if}}
+    </span>
 
-  <span class="detail">{{{detail_highlighted}}}</span>
+    <span class="detail">
+      {{{detail_highlighted}}}
+      {{#if disabled}}
+        (disabled)
+      {{/if}}
+    </span>
+  </span>
 </script>
 
 <script type="text/x-template" id="debugger-result-template">

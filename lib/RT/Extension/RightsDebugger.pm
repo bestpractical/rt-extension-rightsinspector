@@ -74,6 +74,7 @@ sub SerializeRecord {
         label       => $self->LabelForRecord($record),
         detail      => $self->DetailForRecord($record),
         url         => $self->URLForRecord($record),
+        disabled    => $self->DisabledForRecord($record) ? JSON::true : JSON::false,
     };
 }
 
@@ -82,6 +83,17 @@ sub LabelForRecord {
     my $record = shift;
 
     return $record->Name;
+}
+
+sub DisabledForRecord {
+    my $self = shift;
+    my $record = shift;
+
+    if ($record->can('Disabled')) {
+        return $record->Disabled;
+    }
+
+    return 0;
 }
 
 sub DetailForRecord {
