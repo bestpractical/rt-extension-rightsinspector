@@ -63,6 +63,35 @@ sub _HighlightSerializedForSearch {
     return;
 }
 
+sub _PrincipalForSpec {
+    my $self       = shift;
+    my $type       = shift;
+    my $identifier = shift;
+
+    if ($type =~ /^g/i) {
+        my $group = RT::Group->new($self->CurrentUser);
+        if ( $identifier =~ /^\d+$/ ) {
+            $group->LoadByCols(
+                id => $identifier,
+            );
+        } else {
+            $group->LoadByCols(
+                Domain => 'UserDefined',
+                Name   => $identifier,
+            );
+        }
+
+        return $group->PrincipalObj if $group->Id;
+    }
+    else {
+        my $user = RT::User->new($self->CurrentUser);
+        $user->Load($identifier);
+        return $user->PrincipalObj if $user->Id;
+    }
+
+    return undef;
+}
+
 sub Search {
     my $self = shift;
     my %args = (
@@ -78,6 +107,53 @@ sub Search {
     my $ACL = RT::ACL->new($self->CurrentUser);
 
     my $has_search = 0;
+    my %use_regex_search_for = (
+        principal => 1,
+        object    => 1,
+    );
+
+    if ($args{principal}) {
+        for my $word (split ' ', $args{principal}) {
+            if (my ($type, $identifier) = $word =~ m{
+                ^
+                    (u|user|g|group)
+                    [:#]
+                    (\S+)
+                $
+            }xi) {
+                my $principal = $self->_PrincipalForSpec($type, $identifier);
+                if (!$principal) {
+                    return { error => 'Unable to find row' };
+                }
+
+                $has_search = 1;
+                $use_regex_search_for{principal} = 0;
+
+                my $principal_alias = $ACL->Join(
+                    ALIAS1 => 'main',
+                    FIELD1 => 'PrincipalId',
+                    TABLE2 => 'Principals',
+                    FIELD2 => 'id',
+                );
+                my $cgm_alias = $ACL->Join(
+                    ALIAS1 => 'main',
+                    FIELD1 => 'PrincipalId',
+                    TABLE2 => 'CachedGroupMembers',
+                    FIELD2 => 'GroupId',
+                );
+                $ACL->Limit(
+                    ALIAS => $cgm_alias,
+                    FIELD => 'MemberId',
+                    VALUE => $principal->Id,
+                );
+                $ACL->Limit(
+                    ALIAS => $cgm_alias,
+                    FIELD => 'Disabled',
+                    VALUE => 0,
+                );
+            }
+        }
+    }
 
     if ($args{right}) {
         $has_search = 1;
@@ -123,6 +199,8 @@ sub Search {
 
         # this is hacky, but doing the searching in SQL is absolutely a nonstarter
         KEY: for my $key (qw/principal object/) {
+            next KEY unless $use_regex_search_for{$key};
+
             if (my $matchers = $search{$key}) {
                 my $record = $serialized->{$key};
                 for my $re (@$matchers) {
