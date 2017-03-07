@@ -103,6 +103,22 @@ sub _PrincipalForSpec {
     return undef;
 }
 
+sub _ObjectForSpec {
+    my $self       = shift;
+    my $type       = shift;
+    my $identifier = shift;
+
+    if ($type =~ /^(t|ticket)$/i) {
+        my $ticket = RT::Ticket->new($self->CurrentUser);
+        $ticket->Load($identifier);
+        return $ticket if $ticket->Id;
+    }
+    else {
+    }
+
+    return undef;
+}
+
 sub Search {
     my $self = shift;
     my %args = (
@@ -125,6 +141,34 @@ sub Search {
         principal => undef,
         object    => undef,
     );
+
+    if ($args{object}) {
+        if (my ($type, $identifier) = $args{object} =~ m{
+            ^
+                \s*
+                (t|ticket|asset)
+                \s*
+                [:#]
+                \s*
+                (.+?)
+                \s*
+            $
+        }xi) {
+            my $record = $self->_ObjectForSpec($type, $identifier);
+            if (!$record) {
+                return { error => 'Unable to find row' };
+            }
+
+            $has_search = 1;
+            $use_regex_search_for{object} = 0;
+
+            $primary_records{object} = $record;
+
+            for my $obj ($record, $record->ACLEquivalenceObjects, RT->System) {
+                $ACL->LimitToObject($obj);
+            }
+        }
+    }
 
     if ($args{principal}) {
         if (my ($type, $identifier) = $args{principal} =~ m{
@@ -421,6 +465,9 @@ sub URLForRecord {
     }
     elsif ($record->isa('RT::CustomRole')) {
         return RT->Config->Get('WebURL') . 'Admin/CustomRoles/Modify.html?id=' . $id;
+    }
+    elsif ($record->isa('RT::Ticket')) {
+        return RT->Config->Get('WebURL') . 'Ticket/Display.html?id=' . $id;
     }
 
     return undef;
