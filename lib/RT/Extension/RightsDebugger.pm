@@ -11,6 +11,28 @@ RT->AddJavaScript("handlebars-4.0.6.min.js");
 
 $RT::Interface::Web::WHITELISTED_COMPONENT_ARGS{'/Admin/RightsDebugger/index.html'} = ['Principal', 'Object', 'Right'];
 
+sub _EscapeHTML {
+    my $s = shift;
+    RT::Interface::Web::EscapeHTML(\$s);
+    return $s;
+}
+
+sub _HighlightTerm {
+    my ($text, $re) = @_;
+
+    $text =~ s{
+        \G         # where we left off the previous iteration thanks to /g
+        (.*?)      # non-matching text before the match
+        ($re|$)    # matching text, or the end of the line (to escape any
+                   # text after the last match)
+    }{
+      _EscapeHTML($1) .
+      (length $2 ? '<span class="match">' . _EscapeHTML($2) . '</span>' : '')
+    }xeg;
+
+    return $text; # now escaped as html
+}
+
 sub Search {
     my $self = shift;
     my %args = (
@@ -52,28 +74,6 @@ sub Search {
         }
     }
 
-    my $escape_html = sub {
-        my $s = shift;
-        RT::Interface::Web::EscapeHTML(\$s);
-        return $s;
-    };
-
-    my $highlight_term = sub {
-        my ($text, $re) = @_;
-
-        $text =~ s{
-            \G         # where we left off the previous iteration thanks to /g
-            (.*?)      # non-matching text before the match
-            ($re|$)    # matching text, or the end of the line (to escape any
-                       # text after the last match)
-        }{
-          $escape_html->($1) .
-          (length $2 ? '<span class="match">' . $escape_html->($2) . '</span>' : '')
-        }xeg;
-
-        return $text; # now escape as html
-    };
-
     ACE: while (my $ACE = $ACL->Next) {
         my $serialized = $self->SerializeACE($ACE);
 
@@ -91,7 +91,7 @@ sub Search {
         }
 
         # highlight matching words
-        $serialized->{right_highlighted} = $highlight_term->($serialized->{right}, join '|', @{ $search{right} || [] });
+        $serialized->{right_highlighted} = _HighlightTerm($serialized->{right}, join '|', @{ $search{right} || [] });
 
         for my $key (qw/principal object/) {
             my $record = $serialized->{$key};
@@ -99,13 +99,13 @@ sub Search {
             if (my $matchers = $search{$key}) {
                 my $re = join '|', @$matchers;
                 for my $column (qw/label detail/) {
-                    $record->{$column . '_highlighted'} = $highlight_term->($record->{$column}, $re);
+                    $record->{$column . '_highlighted'} = _HighlightTerm($record->{$column}, $re);
                 }
             }
 
             for my $column (qw/label detail/) {
                 # make sure we escape html if there was no search
-                $record->{$column . '_highlighted'} //= $escape_html->($record->{$column});
+                $record->{$column . '_highlighted'} //= _EscapeHTML($record->{$column});
             }
         }
 
