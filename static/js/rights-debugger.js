@@ -28,33 +28,33 @@ jQuery(function () {
     };
 
     var displayRevoking = function (button) {
+        if (button.hasClass('ui-state-disabled')) {
+            return;
+        }
+
         button.addClass('ui-state-disabled').prop('disabled', true);
         button.after(loading.clone());
     };
 
-    var refreshResults = function () {
-        form.addClass('refreshing');
-        form.find('button').addClass('ui-state-disabled').prop('disabled', true);
-
-        var serialized = form.serializeArray();
-        var search = {};
-        jQuery.each(serialized, function(i, field){
-            search[field.name] = field.value;
-        });
-
-        if (existingRequest) {
-            existingRequest.abort();
-        }
+    var requestPage;
+    requestPage = function (search, continueAfter) {
+        search.continueAfter = continueAfter;
 
         existingRequest = jQuery.ajax({
             url: form.attr('action'),
             data: search,
             timeout: 30000, /* 30 seconds */
             success: function (response) {
-                form.removeClass('refreshing').removeClass('error');
-                display.empty();
+                form.removeClass('error');
 
                 var items = response.results;
+
+                /* change UI only after we find a result */
+                if (items.length && form.hasClass('awaiting-first-result')) {
+                    display.empty();
+                    form.removeClass('awaiting-first-result').addClass('continuing-load');
+                }
+
                 jQuery.each(items, function (i, item) {
                     display.append(renderItem({ search: search, item: item }));
                 });
@@ -63,17 +63,48 @@ jQuery(function () {
                     var revokeButton = buttonForAction(key);
                     displayRevoking(revokeButton);
                 });
+
+                if (response.continueAfter) {
+                    requestPage(search, response.continueAfter);
+                }
+                else {
+                    form.removeClass('continuing-load');
+
+                    if (form.hasClass('awaiting-first-result')) {
+                        display.empty();
+                        form.removeClass('awaiting-first-result');
+                        display.text('No results');
+                    }
+                }
             },
             error: function (xhr, reason) {
                 if (reason == 'abort') {
                     return;
                 }
 
-                form.removeClass('refreshing').addClass('error');
+                form.removeClass('awaiting-first-result').removeClass('continuing-load').addClass('error');
                 display.empty();
                 display.text('Error: ' + xhr.statusText);
             }
         });
+    };
+
+    var beginSearch = function () {
+        form.removeClass('continuing-load').addClass('awaiting-first-result');
+        form.find('button').addClass('ui-state-disabled').prop('disabled', true);
+
+        var serialized = form.serializeArray();
+        var search = {};
+
+        jQuery.each(serialized, function(i, field){
+            search[field.name] = field.value;
+        });
+
+        if (existingRequest) {
+            existingRequest.abort();
+        }
+
+        requestPage(search, 0);
     };
 
     display.on('click', '.revoke button', function (e) {
@@ -108,8 +139,8 @@ jQuery(function () {
     });
 
     form.find('.search input').on('input', function () {
-        refreshResults();
+        beginSearch();
     });
 
-    refreshResults();
+    beginSearch();
 });

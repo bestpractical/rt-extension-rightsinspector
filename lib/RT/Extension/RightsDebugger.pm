@@ -88,7 +88,18 @@ sub Search {
         }
     }
 
+    if ($args{continueAfter}) {
+        $has_search = 1;
+        $ACL->Limit(
+            FIELD    => 'id',
+            OPERATOR => '>',
+            VALUE    => $args{continueAfter},
+        );
+    }
+
     $ACL->UnLimit unless $has_search;
+
+    $ACL->RowsPerPage(100);
 
     for my $key (qw/principal object right/) {
         if (my $search = $args{$key}) {
@@ -100,7 +111,10 @@ sub Search {
         }
     }
 
+    my $continueAfter;
+
     ACE: while (my $ACE = $ACL->Next) {
+        $continueAfter = $ACE->Id;
         my $serialized = $self->SerializeACE($ACE);
 
         # this is hacky, but doing the searching in SQL is absolutely a nonstarter
@@ -124,7 +138,14 @@ sub Search {
         push @results, $serialized;
     }
 
-    return \@results;
+    # if we didn't fill the whole page, then we know there are
+    # no more rows to consider
+    undef $continueAfter if $ACL->Count < $ACL->RowsPerPage;
+
+    return {
+        results => \@results,
+        continueAfter => $continueAfter,
+    };
 }
 
 sub SerializeACE {

@@ -14,17 +14,23 @@
     width: auto;
 }
 
-#rights-debugger .search .loading {
+#rights-debugger .search .loading,
+#rights-debugger > .loading {
     display: none;
 }
 
 #rights-debugger .search .loading img,
+#rights-debugger > .loading img,
 #rights-debugger .results .revoke img {
     height: 1.5em;
     width: 1.5em;
 }
 
-#rights-debugger.refreshing .search .loading {
+#rights-debugger.awaiting-first-result .search .loading {
+    display: inline;
+}
+
+#rights-debugger.continuing-load > .loading {
     display: inline;
 }
 
@@ -33,7 +39,7 @@
     font-weight: bold;
 }
 
-#rights-debugger.refreshing .results {
+#rights-debugger.awaiting-first-result .results {
     opacity: 0.5;
 }
 

@@ -1,6 +1,6 @@
 <%INIT>
 my $results = RT::Extension::RightsDebugger->Search(%ARGS);
 $r->content_type('application/json; charset=utf-8');
-$m->out(JSON({ results => $results }));
+$m->out(JSON($results));
 $m->abort;
 </%INIT>
