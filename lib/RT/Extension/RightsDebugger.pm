@@ -104,15 +104,18 @@ sub Search {
         my $serialized = $self->SerializeACE($ACE);
 
         # this is hacky, but doing the searching in SQL is absolutely a nonstarter
-        for my $key (qw/principal object/) {
+        KEY: for my $key (qw/principal object/) {
             if (my $matchers = $search{$key}) {
                 my $record = $serialized->{$key};
                 for my $re (@$matchers) {
-                    next ACE unless $record->{class}  =~ $re
-                                 || $record->{id}     =~ $re
-                                 || $record->{label}  =~ $re
-                                 || $record->{detail} =~ $re;
+                    next KEY if $record->{class}  =~ $re
+                             || $record->{id}     =~ $re
+                             || $record->{label}  =~ $re
+                             || $record->{detail} =~ $re;
                 }
+
+                # no matches
+                next ACE;
             }
         }
 
