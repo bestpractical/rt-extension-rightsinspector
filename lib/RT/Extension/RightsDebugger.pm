@@ -11,6 +11,110 @@ RT->AddJavaScript("handlebars-4.0.6.min.js");
 
 $RT::Interface::Web::WHITELISTED_COMPONENT_ARGS{'/Admin/RightsDebugger/index.html'} = ['Principal', 'Object', 'Right'];
 
+sub Search {
+    my $self = shift;
+    my %args = (
+        principal => '',
+        object    => '',
+        right     => '',
+        @_,
+    );
+
+    my @results;
+    my %search;
+
+    my $ACL = RT::ACL->new($HTML::Mason::Commands::session{CurrentUser});
+
+    my $has_search = 0;
+
+    if ($args{right}) {
+        $has_search = 1;
+        for my $word (split ' ', $args{right}) {
+            $ACL->Limit(
+                FIELD           => 'RightName',
+                OPERATOR        => 'LIKE',
+                VALUE           => $word,
+                CASESENSITIVE   => 0,
+                ENTRYAGGREGATOR => 'OR',
+            );
+        }
+    }
+
+    $ACL->UnLimit unless $has_search;
+
+    for my $key (qw/principal object right/) {
+        if (my $search = $args{$key}) {
+            my @matchers;
+            for my $word (split ' ', $search) {
+                push @matchers, qr/\Q$word\E/i;
+            }
+            $search{$key} = \@matchers;
+        }
+    }
+
+    my $escape_html = sub {
+        my $s = shift;
+        RT::Interface::Web::EscapeHTML(\$s);
+        return $s;
+    };
+
+    my $highlight_term = sub {
+        my ($text, $re) = @_;
+
+        $text =~ s{
+            \G         # where we left off the previous iteration thanks to /g
+            (.*?)      # non-matching text before the match
+            ($re|$)    # matching text, or the end of the line (to escape any
+                       # text after the last match)
+        }{
+          $escape_html->($1) .
+          (length $2 ? '<span class="match">' . $escape_html->($2) . '</span>' : '')
+        }xeg;
+
+        return $text; # now escape as html
+    };
+
+    ACE: while (my $ACE = $ACL->Next) {
+        my $serialized = $self->SerializeACE($ACE);
+
+        # this is hacky, but doing the searching in SQL is absolutely a nonstarter
+        for my $key (qw/principal object/) {
+            if (my $matchers = $search{$key}) {
+                my $record = $serialized->{$key};
+                for my $re (@$matchers) {
+                    next ACE unless $record->{class}  =~ $re
+                                 || $record->{id}     =~ $re
+                                 || $record->{label}  =~ $re
+                                 || $record->{detail} =~ $re;
+                }
+            }
+        }
+
+        # highlight matching words
+        $serialized->{right_highlighted} = $highlight_term->($serialized->{right}, join '|', @{ $search{right} || [] });
+
+        for my $key (qw/principal object/) {
+            my $record = $serialized->{$key};
+
+            if (my $matchers = $search{$key}) {
+                my $re = join '|', @$matchers;
+                for my $column (qw/label detail/) {
+                    $record->{$column . '_highlighted'} = $highlight_term->($record->{$column}, $re);
+                }
+            }
+
+            for my $column (qw/label detail/) {
+                # make sure we escape html if there was no search
+                $record->{$column . '_highlighted'} //= $escape_html->($record->{$column});
+            }
+        }
+
+        push @results, $serialized;
+    }
+
+    return \@results;
+}
+
 sub SerializeACE {
     my $self = shift;
     my $ACE = shift;
