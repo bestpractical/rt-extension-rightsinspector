@@ -4,6 +4,11 @@
     width: 15em;
 }
 
+#rights-debugger .results .result .cell {
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
 #rights-debugger .results .result .cell.revoke {
     display: inline-block;
     width: auto;
