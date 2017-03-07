@@ -112,58 +112,55 @@ sub Search {
         object    => 1,
     );
     my %primary_records = (
-        principal => [],
-        object    => [],
+        principal => undef,
+        object    => undef,
     );
 
     if ($args{principal}) {
-        my ($principal_alias, $cgm_alias);
-
-        for my $word (split ' ', $args{principal}) {
-            if (my ($type, $identifier) = $word =~ m{
-                ^
-                    (u|user|g|group)
-                    [:#]
-                    (\S+)
-                $
-            }xi) {
-                my $principal = $self->_PrincipalForSpec($type, $identifier);
-                if (!$principal) {
-                    return { error => 'Unable to find row' };
-                }
-
-                $has_search = 1;
-                $use_regex_search_for{principal} = 0;
-
-                push @{ $primary_records{principal} }, $principal;
-
-                $principal_alias ||= $ACL->Join(
-                    ALIAS1 => 'main',
-                    FIELD1 => 'PrincipalId',
-                    TABLE2 => 'Principals',
-                    FIELD2 => 'id',
-                );
-
-                if (!$cgm_alias) {
-                    $cgm_alias = $ACL->Join(
-                        ALIAS1 => 'main',
-                        FIELD1 => 'PrincipalId',
-                        TABLE2 => 'CachedGroupMembers',
-                        FIELD2 => 'GroupId',
-                    );
-                    $ACL->Limit(
-                        ALIAS => $cgm_alias,
-                        FIELD => 'Disabled',
-                        VALUE => 0,
-                    );
-                }
-
-                $ACL->Limit(
-                    ALIAS => $cgm_alias,
-                    FIELD => 'MemberId',
-                    VALUE => $principal->Id,
-                );
+        if (my ($type, $identifier) = $args{principal} =~ m{
+            ^
+                \s*
+                (u|user|g|group)
+                \s*
+                [:#]
+                \s*
+                (.+?)
+                \s*
+            $
+        }xi) {
+            my $principal = $self->_PrincipalForSpec($type, $identifier);
+            if (!$principal) {
+                return { error => 'Unable to find row' };
             }
+
+            $has_search = 1;
+            $use_regex_search_for{principal} = 0;
+
+            $primary_records{principal} = $principal;
+
+            my $principal_alias = $ACL->Join(
+                ALIAS1 => 'main',
+                FIELD1 => 'PrincipalId',
+                TABLE2 => 'Principals',
+                FIELD2 => 'id',
+            );
+
+            my $cgm_alias = $ACL->Join(
+                ALIAS1 => 'main',
+                FIELD1 => 'PrincipalId',
+                TABLE2 => 'CachedGroupMembers',
+                FIELD2 => 'GroupId',
+            );
+            $ACL->Limit(
+                ALIAS => $cgm_alias,
+                FIELD => 'Disabled',
+                VALUE => 0,
+            );
+            $ACL->Limit(
+                ALIAS => $cgm_alias,
+                FIELD => 'MemberId',
+                VALUE => $principal->Id,
+            );
         }
     }
 
@@ -202,7 +199,7 @@ sub Search {
     for my $key (qw/principal object right/) {
         if (my $search = $args{$key}) {
             my @matchers;
-            for my $word (split ' ', $search) {
+            for my $word ($key eq 'right' ? (split ' ', $search) : $search) {
                 push @matchers, qr/\Q$word\E/i;
             }
             $search{$key} = \@matchers;
@@ -283,39 +280,12 @@ sub DisableRevoke {
     return 0;
 }
 
-sub IsRecordDescendent {
-    my $self   = shift;
-    my $parent = shift;
-    my $child  = shift;
-
-    if ($parent->isa('RT::Group')) {
-        if ($child->isa('RT::Group') || $child->isa('RT::User') || $child->isa('RT::Principal')) {
-            return $parent->HasMember($child->id);
-        }
-    }
-
-    return 0;
-}
-
-sub SerializePrimaryRecords {
-    my $self            = shift;
-    my $record          = shift;
-    my $primary_records = shift;
-
-    my %seen;
-
-    return [
-        map { $self->SerializeRecord($_) }
-        grep { $self->IsRecordDescendent($record, $_) }
-        grep { !$seen{ref($_) . '-' . $_->id}++ }
-        @$primary_records
-    ];
-}
-
 sub SerializeRecord {
     my $self = shift;
     my $record = shift;
-    my $primary_records = shift;
+    my $primary_record = shift;
+
+    return undef unless $record;
 
     if ($record->isa('RT::Principal')) {
         $record = $record->Object;
@@ -337,15 +307,17 @@ sub SerializeRecord {
         }
     }
 
-    return {
+    my $serialized = {
         class           => ref($record),
         id              => $record->id,
         label           => $self->LabelForRecord($record),
         detail          => $self->DetailForRecord($record),
         url             => $self->URLForRecord($record),
         disabled        => $self->DisabledForRecord($record) ? JSON::true : JSON::false,
-        primary_records => $self->SerializePrimaryRecords($record, $primary_records),
+        primary_record  => $self->SerializeRecord($primary_record),
     };
+
+    return $serialized;
 }
 
 sub LabelForRecord {

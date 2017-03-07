@@ -30,11 +30,11 @@
       {{/if}}
     </span>
 
-    {{#each primary_records}}
+    {{#if primary_record}}
       <span class="primary">
-        Contains {{this.label}}
+        Contains {{primary_record.label}}
       </span>
-    {{/each}}
+    {{/if}}
   </span>
 </script>
 
