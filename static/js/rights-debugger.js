@@ -36,6 +36,12 @@ jQuery(function () {
         button.after(loading.clone());
     };
 
+    var displayError = function (message) {
+        form.removeClass('awaiting-first-result').removeClass('continuing-load').addClass('error');
+        display.empty();
+        display.text('Error: ' + message);
+    }
+
     var requestPage;
     requestPage = function (search, continueAfter) {
         search.continueAfter = continueAfter;
@@ -45,6 +51,11 @@ jQuery(function () {
             data: search,
             timeout: 30000, /* 30 seconds */
             success: function (response) {
+                if (response.error) {
+                    displayError(response.error);
+                    return;
+                }
+
                 form.removeClass('error');
 
                 var items = response.results;
@@ -82,9 +93,7 @@ jQuery(function () {
                     return;
                 }
 
-                form.removeClass('awaiting-first-result').removeClass('continuing-load').addClass('error');
-                display.empty();
-                display.text('Error: ' + xhr.statusText);
+                displayError(xhr.statusText);
             }
         });
     };
