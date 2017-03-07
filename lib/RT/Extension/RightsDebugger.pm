@@ -175,6 +175,12 @@ sub Search {
                 ENTRYAGGREGATOR => 'OR',
             );
         }
+        $ACL->Limit(
+            FIELD           => 'RightName',
+            OPERATOR        => '=',
+            VALUE           => 'SuperUser',
+            ENTRYAGGREGATOR => 'OR',
+        );
     }
 
     if ($args{continueAfter}) {
