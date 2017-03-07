@@ -41,7 +41,7 @@ sub _HighlightSerializedForSearch {
     my $serialized = shift;
     my $search     = shift;
 
-    # highlight matching words
+    # highlight matching terms
     $serialized->{right_highlighted} = _HighlightTerm($serialized->{right}, join '|', @{ $search->{right} || [] });
 
     for my $key (qw/principal object/) {
@@ -166,11 +166,11 @@ sub Search {
 
     if ($args{right}) {
         $has_search = 1;
-        for my $word (split ' ', $args{right}) {
+        for my $term (split ' ', $args{right}) {
             $ACL->Limit(
                 FIELD           => 'RightName',
                 OPERATOR        => 'LIKE',
-                VALUE           => $word,
+                VALUE           => $term,
                 CASESENSITIVE   => 0,
                 ENTRYAGGREGATOR => 'OR',
             );
@@ -199,8 +199,8 @@ sub Search {
     for my $key (qw/principal object right/) {
         if (my $search = $args{$key}) {
             my @matchers;
-            for my $word ($key eq 'right' ? (split ' ', $search) : $search) {
-                push @matchers, qr/\Q$word\E/i;
+            for my $term ($key eq 'right' ? (split ' ', $search) : $search) {
+                push @matchers, qr/\Q$term\E/i;
             }
             $search{$key} = \@matchers;
         }
