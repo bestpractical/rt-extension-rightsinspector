@@ -22,7 +22,24 @@ sub _EscapeHTML {
 }
 
 sub _HighlightTerm {
-    my ($text, $re) = @_;
+    my ($text, $term) = @_;
+
+    $term ||= '';
+
+    # strip user:root leaving just root
+    $term =~ s{
+        ^
+            \s*
+            (u|user|g|group)
+            \s*
+            [:#]
+            \s*
+            (.+?)
+            \s*
+        $
+    }{$2}xi;
+
+    my $re = qr/\Q$term\E/i;
 
     $text =~ s{
         \G         # where we left off the previous iteration thanks to /g
@@ -39,25 +56,17 @@ sub _HighlightTerm {
 
 sub _HighlightSerializedForSearch {
     my $serialized = shift;
-    my $search     = shift;
+    my $args       = shift;
 
     # highlight matching terms
-    $serialized->{right_highlighted} = _HighlightTerm($serialized->{right}, join '|', @{ $search->{right} || [] });
+    $serialized->{right_highlighted} = _HighlightTerm($serialized->{right}, $args->{search});
 
     for my $key (qw/principal object/) {
         for my $record ($serialized->{$key}, $serialized->{$key}->{primary_record}) {
             next if !$record;
 
-            if (my $matchers = $search->{$key}) {
-                my $re = join '|', @$matchers;
-                for my $column (qw/label detail/) {
-                    $record->{$column . '_highlighted'} = _HighlightTerm($record->{$column}, $re);
-                }
-            }
-
             for my $column (qw/label detail/) {
-                # make sure we escape html if there was no search
-                $record->{$column . '_highlighted'} //= _EscapeHTML($record->{$column});
+                $record->{$column . '_highlighted'} = _HighlightTerm($record->{$column}, $args->{$key});
             }
         }
     }
@@ -104,7 +113,6 @@ sub Search {
     );
 
     my @results;
-    my %search;
 
     my $ACL = RT::ACL->new($self->CurrentUser);
 
@@ -204,16 +212,6 @@ sub Search {
 
     $ACL->RowsPerPage(100);
 
-    for my $key (qw/principal object right/) {
-        if (my $search = $args{$key}) {
-            my @matchers;
-            for my $term ($key eq 'right' ? (split ' ', $search) : $search) {
-                push @matchers, qr/\Q$term\E/i;
-            }
-            $search{$key} = \@matchers;
-        }
-    }
-
     my $continueAfter;
 
     ACE: while (my $ACE = $ACL->Next) {
@@ -225,21 +223,20 @@ sub Search {
 	    # searching in SQL is absolutely a nonstarter
             next KEY unless $use_regex_search_for{$key};
 
-            if (my $matchers = $search{$key}) {
+            if (my $term = $args{$key}) {
                 my $record = $serialized->{$key};
-                for my $re (@$matchers) {
-                    next KEY if $record->{class}  =~ $re
-                             || $record->{id}     =~ $re
-                             || $record->{label}  =~ $re
-                             || $record->{detail} =~ $re;
-                }
+                my $re = qr/\Q$term\E/i;
+                next KEY if $record->{class}  =~ $re
+                         || $record->{id}     =~ $re
+                         || $record->{label}  =~ $re
+                         || $record->{detail} =~ $re;
 
                 # no matches
                 next ACE;
             }
         }
 
-        _HighlightSerializedForSearch($serialized, \%search);
+        _HighlightSerializedForSearch($serialized, \%args);
 
         push @results, $serialized;
     }
