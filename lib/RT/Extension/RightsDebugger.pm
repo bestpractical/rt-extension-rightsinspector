@@ -11,6 +11,10 @@ RT->AddJavaScript("handlebars-4.0.6.min.js");
 
 $RT::Interface::Web::WHITELISTED_COMPONENT_ARGS{'/Admin/RightsDebugger/index.html'} = ['Principal', 'Object', 'Right'];
 
+sub CurrentUser {
+    return $HTML::Mason::Commands::session{CurrentUser};
+}
+
 sub _EscapeHTML {
     my $s = shift;
     RT::Interface::Web::EscapeHTML(\$s);
@@ -71,7 +75,7 @@ sub Search {
     my @results;
     my %search;
 
-    my $ACL = RT::ACL->new($HTML::Mason::Commands::session{CurrentUser});
+    my $ACL = RT::ACL->new($self->CurrentUser);
 
     my $has_search = 0;
 
