@@ -33,6 +33,32 @@ sub _HighlightTerm {
     return $text; # now escaped as html
 }
 
+sub _HighlightSerializedForSearch {
+    my $serialized = shift;
+    my $search     = shift;
+
+    # highlight matching words
+    $serialized->{right_highlighted} = _HighlightTerm($serialized->{right}, join '|', @{ $search->{right} || [] });
+
+    for my $key (qw/principal object/) {
+        my $record = $serialized->{$key};
+
+        if (my $matchers = $search->{$key}) {
+            my $re = join '|', @$matchers;
+            for my $column (qw/label detail/) {
+                $record->{$column . '_highlighted'} = _HighlightTerm($record->{$column}, $re);
+            }
+        }
+
+        for my $column (qw/label detail/) {
+            # make sure we escape html if there was no search
+            $record->{$column . '_highlighted'} //= _EscapeHTML($record->{$column});
+        }
+    }
+
+    return;
+}
+
 sub Search {
     my $self = shift;
     my %args = (
@@ -90,24 +116,7 @@ sub Search {
             }
         }
 
-        # highlight matching words
-        $serialized->{right_highlighted} = _HighlightTerm($serialized->{right}, join '|', @{ $search{right} || [] });
-
-        for my $key (qw/principal object/) {
-            my $record = $serialized->{$key};
-
-            if (my $matchers = $search{$key}) {
-                my $re = join '|', @$matchers;
-                for my $column (qw/label detail/) {
-                    $record->{$column . '_highlighted'} = _HighlightTerm($record->{$column}, $re);
-                }
-            }
-
-            for my $column (qw/label detail/) {
-                # make sure we escape html if there was no search
-                $record->{$column . '_highlighted'} //= _EscapeHTML($record->{$column});
-            }
-        }
+        _HighlightSerializedForSearch($serialized, \%search);
 
         push @results, $serialized;
     }
