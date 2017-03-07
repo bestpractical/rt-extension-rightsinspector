@@ -355,16 +355,7 @@ sub DetailForRecord {
 
     # like RT::Group->SelfDescription but without the redundant labels
     if ($record->isa('RT::Group')) {
-        if ($record->Domain eq 'RT::System-Role') {
-            return "System Role";
-        }
-        elsif ($record->Domain eq 'RT::Queue-Role') {
-            return "Queue Role";
-        }
-        elsif ($record->Domain eq 'RT::Ticket-Role') {
-            return "Ticket Role";
-        }
-        elsif ($record->RoleClass) {
+        if ($record->RoleClass) {
             my $class = $record->RoleClass;
             $class =~ s/^RT:://i;
             return "$class Role";
