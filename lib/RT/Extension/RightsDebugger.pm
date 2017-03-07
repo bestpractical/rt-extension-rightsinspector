@@ -82,6 +82,10 @@ sub LabelForRecord {
     my $self = shift;
     my $record = shift;
 
+    if ($record->isa('RT::Ticket')) {
+        return $record->Subject;
+    }
+
     return $record->Name;
 }
 
