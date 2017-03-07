@@ -45,18 +45,20 @@ sub _HighlightSerializedForSearch {
     $serialized->{right_highlighted} = _HighlightTerm($serialized->{right}, join '|', @{ $search->{right} || [] });
 
     for my $key (qw/principal object/) {
-        my $record = $serialized->{$key};
+        for my $record ($serialized->{$key}, $serialized->{$key}->{primary_record}) {
+            next if !$record;
 
-        if (my $matchers = $search->{$key}) {
-            my $re = join '|', @$matchers;
-            for my $column (qw/label detail/) {
-                $record->{$column . '_highlighted'} = _HighlightTerm($record->{$column}, $re);
+            if (my $matchers = $search->{$key}) {
+                my $re = join '|', @$matchers;
+                for my $column (qw/label detail/) {
+                    $record->{$column . '_highlighted'} = _HighlightTerm($record->{$column}, $re);
+                }
             }
-        }
 
-        for my $column (qw/label detail/) {
-            # make sure we escape html if there was no search
-            $record->{$column . '_highlighted'} //= _EscapeHTML($record->{$column});
+            for my $column (qw/label detail/) {
+                # make sure we escape html if there was no search
+                $record->{$column . '_highlighted'} //= _EscapeHTML($record->{$column});
+            }
         }
     }
 

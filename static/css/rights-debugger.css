@@ -72,3 +72,7 @@
     font-style: italic;
     display: block;
 }
+
+#rights-debugger .results .result .primary .detail {
+    display: none;
+}
