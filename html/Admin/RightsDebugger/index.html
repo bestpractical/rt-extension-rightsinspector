@@ -29,6 +29,12 @@
         (disabled)
       {{/if}}
     </span>
+
+    {{#each primary_records}}
+      <span class="primary">
+        Contains {{this.label}}
+      </span>
+    {{/each}}
   </span>
 </script>
 

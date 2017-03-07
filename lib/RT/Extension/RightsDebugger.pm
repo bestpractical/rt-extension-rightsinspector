@@ -111,6 +111,10 @@ sub Search {
         principal => 1,
         object    => 1,
     );
+    my %primary_records = (
+        principal => [],
+        object    => [],
+    );
 
     if ($args{principal}) {
         my ($principal_alias, $cgm_alias);
@@ -130,6 +134,8 @@ sub Search {
 
                 $has_search = 1;
                 $use_regex_search_for{principal} = 0;
+
+                push @{ $primary_records{principal} }, $principal;
 
                 $principal_alias ||= $ACL->Join(
                     ALIAS1 => 'main',
@@ -207,10 +213,11 @@ sub Search {
 
     ACE: while (my $ACE = $ACL->Next) {
         $continueAfter = $ACE->Id;
-        my $serialized = $self->SerializeACE($ACE);
+        my $serialized = $self->SerializeACE($ACE, \%primary_records);
 
-        # this is hacky, but doing the searching in SQL is absolutely a nonstarter
         KEY: for my $key (qw/principal object/) {
+	    # filtering on the serialized record is hacky, but doing the
+	    # searching in SQL is absolutely a nonstarter
             next KEY unless $use_regex_search_for{$key};
 
             if (my $matchers = $search{$key}) {
@@ -245,10 +252,11 @@ sub Search {
 sub SerializeACE {
     my $self = shift;
     my $ACE = shift;
+    my $primary_records = shift;
 
     return {
-        principal      => $self->SerializeRecord($ACE->PrincipalObj),
-        object         => $self->SerializeRecord($ACE->Object),
+        principal      => $self->SerializeRecord($ACE->PrincipalObj, $primary_records->{principal}),
+        object         => $self->SerializeRecord($ACE->Object, $primary_records->{object}),
         right          => $ACE->RightName,
         ace            => { id => $ACE->Id },
         disable_revoke => $self->DisableRevoke($ACE),
@@ -275,9 +283,39 @@ sub DisableRevoke {
     return 0;
 }
 
+sub IsRecordDescendent {
+    my $self   = shift;
+    my $parent = shift;
+    my $child  = shift;
+
+    if ($parent->isa('RT::Group')) {
+        if ($child->isa('RT::Group') || $child->isa('RT::User') || $child->isa('RT::Principal')) {
+            return $parent->HasMember($child->id);
+        }
+    }
+
+    return 0;
+}
+
+sub SerializePrimaryRecords {
+    my $self            = shift;
+    my $record          = shift;
+    my $primary_records = shift;
+
+    my %seen;
+
+    return [
+        map { $self->SerializeRecord($_) }
+        grep { $self->IsRecordDescendent($record, $_) }
+        grep { !$seen{ref($_) . '-' . $_->id}++ }
+        @$primary_records
+    ];
+}
+
 sub SerializeRecord {
     my $self = shift;
     my $record = shift;
+    my $primary_records = shift;
 
     if ($record->isa('RT::Principal')) {
         $record = $record->Object;
@@ -300,12 +338,13 @@ sub SerializeRecord {
     }
 
     return {
-        class       => ref($record),
-        id          => $record->id,
-        label       => $self->LabelForRecord($record),
-        detail      => $self->DetailForRecord($record),
-        url         => $self->URLForRecord($record),
-        disabled    => $self->DisabledForRecord($record) ? JSON::true : JSON::false,
+        class           => ref($record),
+        id              => $record->id,
+        label           => $self->LabelForRecord($record),
+        detail          => $self->DetailForRecord($record),
+        url             => $self->URLForRecord($record),
+        disabled        => $self->DisabledForRecord($record) ? JSON::true : JSON::false,
+        primary_records => $self->SerializePrimaryRecords($record, $primary_records),
     };
 }
 

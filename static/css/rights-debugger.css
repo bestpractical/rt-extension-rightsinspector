@@ -67,3 +67,8 @@
     text-decoration: line-through;
 }
 
+#rights-debugger .results .result .primary {
+    font-size: 80%;
+    font-style: italic;
+    display: block;
+}
