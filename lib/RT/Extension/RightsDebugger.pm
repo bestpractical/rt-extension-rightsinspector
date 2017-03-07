@@ -183,6 +183,12 @@ sub Search {
         );
     }
 
+    $ACL->OrderBy(
+        ALIAS => 'main',
+        FIELD => 'id',
+        ORDER => 'ASC',
+    );
+
     $ACL->UnLimit unless $has_search;
 
     $ACL->RowsPerPage(100);
