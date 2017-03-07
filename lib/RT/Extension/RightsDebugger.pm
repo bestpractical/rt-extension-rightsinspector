@@ -21,8 +21,8 @@ sub _EscapeHTML {
     return $s;
 }
 
-sub _HighlightTerm {
-    my ($text, $term) = @_;
+sub _RegexifyTermForHighlight {
+    my $term = shift;
 
     $term ||= '';
 
@@ -39,7 +39,21 @@ sub _HighlightTerm {
         $
     }{$2}xi;
 
-    my $re = qr/\Q$term\E/i;
+    return qr/\Q$term\E/i;
+}
+
+sub _HighlightTerm {
+    my ($text, $term) = @_;
+
+    my $re = ref($term) eq 'ARRAY'
+           ? join '|', map { _RegexifyTermForHighlight($_) } @$term
+           : _RegexifyTermForHighlight($term);
+
+    # if $term is an arrayref, make sure we qr-ify it
+    # without this, then if $term has no elements, we interpolate $re
+    # as an empty string which causes the regex engine to fall into
+    # an infinite loop
+    $re = qr/$re/ unless ref($re);
 
     $text =~ s{
         \G         # where we left off the previous iteration thanks to /g
@@ -59,7 +73,7 @@ sub _HighlightSerializedForSearch {
     my $args       = shift;
 
     # highlight matching terms
-    $serialized->{right_highlighted} = _HighlightTerm($serialized->{right}, $args->{search});
+    $serialized->{right_highlighted} = _HighlightTerm($serialized->{right}, [split ' ', $args->{right} || '']);
 
     for my $key (qw/principal object/) {
         for my $record ($serialized->{$key}, $serialized->{$key}->{primary_record}) {
