@@ -4,6 +4,11 @@
     width: 15em;
 }
 
+#rights-debugger .results .result .cell.revoke {
+    display: inline-block;
+    width: auto;
+}
+
 #rights-debugger .search .loading {
     display: none;
 }
