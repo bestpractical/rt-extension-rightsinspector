@@ -288,10 +288,9 @@ sub DisableRevoke {
     return 0;
 }
 
-sub SerializeRecord {
+sub CanonicalizeRecord {
     my $self = shift;
     my $record = shift;
-    my $primary_record = shift;
 
     return undef unless $record;
 
@@ -314,6 +313,23 @@ sub SerializeRecord {
             }
         }
     }
+
+    return $record;
+}
+
+sub SerializeRecord {
+    my $self = shift;
+    my $record = shift;
+    my $primary_record = shift;
+
+    return undef unless $record;
+
+    $record = $self->CanonicalizeRecord($record);
+    $primary_record = $self->CanonicalizeRecord($primary_record);
+
+    undef $primary_record if $primary_record
+                          && ref($record) eq ref($primary_record)
+                          && $record->Id == $primary_record->Id;
 
     my $serialized = {
         class           => ref($record),
