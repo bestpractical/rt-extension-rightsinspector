@@ -79,7 +79,7 @@ sub _PrincipalForSpec {
     my $type       = shift;
     my $identifier = shift;
 
-    if ($type =~ /^g/i) {
+    if ($type =~ /^(g|group)$/i) {
         my $group = RT::Group->new($self->CurrentUser);
         if ( $identifier =~ /^\d+$/ ) {
             $group->LoadByCols(
@@ -94,10 +94,13 @@ sub _PrincipalForSpec {
 
         return $group->PrincipalObj if $group->Id;
     }
-    else {
+    elsif ($type =~ /^(u|user)$/i) {
         my $user = RT::User->new($self->CurrentUser);
         $user->Load($identifier);
         return $user->PrincipalObj if $user->Id;
+    }
+    else {
+        RT->Logger->debug("Unexpected type '$type'");
     }
 
     return undef;
@@ -108,13 +111,36 @@ sub _ObjectForSpec {
     my $type       = shift;
     my $identifier = shift;
 
+    my $record;
+
     if ($type =~ /^(t|ticket)$/i) {
-        my $ticket = RT::Ticket->new($self->CurrentUser);
-        $ticket->Load($identifier);
-        return $ticket if $ticket->Id;
+        $record = RT::Ticket->new($self->CurrentUser);
+    }
+    elsif ($type =~ /^(q|queue)$/i) {
+        $record = RT::Queue->new($self->CurrentUser);
+    }
+    elsif ($type =~ /^asset$/i) {
+        $record = RT::Asset->new($self->CurrentUser);
+    }
+    elsif ($type =~ /^catalog$/i) {
+        $record = RT::Catalog->new($self->CurrentUser);
+    }
+    elsif ($type =~ /^(a|article)$/i) {
+        $record = RT::Article->new($self->CurrentUser);
+    }
+    elsif ($type =~ /^class$/i) {
+        $record = RT::Class->new($self->CurrentUser);
+    }
+    elsif ($type =~ /^(g|group)$/i) {
+        return $self->_PrincipalForSpec($type, $identifier);
     }
     else {
+        RT->Logger->debug("Unexpected type '$type'");
+        return undef;
     }
+
+    $record->Load($identifier);
+    return $record if $record->Id;
 
     return undef;
 }
@@ -146,7 +172,7 @@ sub Search {
         if (my ($type, $identifier) = $args{object} =~ m{
             ^
                 \s*
-                (t|ticket|asset)
+                (t|ticket|q|queue|asset|catalog|a|article|class|g|group)
                 \s*
                 [:#]
                 \s*
@@ -468,6 +494,12 @@ sub URLForRecord {
     }
     elsif ($record->isa('RT::Ticket')) {
         return RT->Config->Get('WebURL') . 'Ticket/Display.html?id=' . $id;
+    }
+    elsif ($record->isa('RT::Asset')) {
+        return RT->Config->Get('WebURL') . 'Asset/Display.html?id=' . $id;
+    }
+    elsif ($record->isa('RT::Article')) {
+        return RT->Config->Get('WebURL') . 'Articles/Article/Display.html?id=' . $id;
     }
 
     return undef;
