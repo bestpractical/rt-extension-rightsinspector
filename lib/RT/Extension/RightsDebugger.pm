@@ -113,6 +113,8 @@ sub Search {
     );
 
     if ($args{principal}) {
+        my ($principal_alias, $cgm_alias);
+
         for my $word (split ' ', $args{principal}) {
             if (my ($type, $identifier) = $word =~ m{
                 ^
@@ -129,27 +131,31 @@ sub Search {
                 $has_search = 1;
                 $use_regex_search_for{principal} = 0;
 
-                my $principal_alias = $ACL->Join(
+                $principal_alias ||= $ACL->Join(
                     ALIAS1 => 'main',
                     FIELD1 => 'PrincipalId',
                     TABLE2 => 'Principals',
                     FIELD2 => 'id',
                 );
-                my $cgm_alias = $ACL->Join(
-                    ALIAS1 => 'main',
-                    FIELD1 => 'PrincipalId',
-                    TABLE2 => 'CachedGroupMembers',
-                    FIELD2 => 'GroupId',
-                );
+
+                if (!$cgm_alias) {
+                    $cgm_alias = $ACL->Join(
+                        ALIAS1 => 'main',
+                        FIELD1 => 'PrincipalId',
+                        TABLE2 => 'CachedGroupMembers',
+                        FIELD2 => 'GroupId',
+                    );
+                    $ACL->Limit(
+                        ALIAS => $cgm_alias,
+                        FIELD => 'Disabled',
+                        VALUE => 0,
+                    );
+                }
+
                 $ACL->Limit(
                     ALIAS => $cgm_alias,
                     FIELD => 'MemberId',
                     VALUE => $principal->Id,
-                );
-                $ACL->Limit(
-                    ALIAS => $cgm_alias,
-                    FIELD => 'Disabled',
-                    VALUE => 0,
                 );
             }
         }
