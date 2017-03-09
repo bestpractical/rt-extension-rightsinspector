@@ -451,10 +451,10 @@ sub LabelForRecord {
     my $record = shift;
 
     if ($record->isa('RT::Ticket')) {
-        return $record->Subject;
+        return $record->Subject || $self->CurrentUser->loc('(No subject)');
     }
 
-    return $record->Name;
+    return $record->Name || $self->CurrentUser->loc('(No name)');
 }
 
 # boolean indicating whether the record should be labeled as disabled in the UI
