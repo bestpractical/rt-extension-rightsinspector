@@ -116,11 +116,13 @@ sub PrincipalForSpec {
         }
 
         return $group->PrincipalObj if $group->Id;
+        return (0, "Unable to load group $identifier");
     }
     elsif ($type =~ /^(u|user)$/i) {
         my $user = RT::User->new($self->CurrentUser);
-        $user->Load($identifier);
+        my ($ok, $msg) = $user->Load($identifier);
         return $user->PrincipalObj if $user->Id;
+        return (0, "Unable to load user $identifier");
     }
     else {
         RT->Logger->debug("Unexpected type '$type'");
@@ -166,6 +168,8 @@ sub ObjectForSpec {
 
     $record->Load($identifier);
     return $record if $record->Id;
+    my $class = ref($record); $class =~ s/^RT:://;
+    return (0, "Unable to load $class '$identifier'");
 
     return undef;
 }
@@ -207,9 +211,9 @@ sub Search {
                 \s*
             $
         }xi) {
-            my $record = $self->ObjectForSpec($type, $identifier);
+            my ($record, $msg) = $self->ObjectForSpec($type, $identifier);
             if (!$record) {
-                return { error => 'Unable to find row' };
+                return { error => $msg || 'Unable to find row' };
             }
 
             $has_search = 1;
@@ -235,9 +239,9 @@ sub Search {
                 \s*
             $
         }xi) {
-            my $principal = $self->PrincipalForSpec($type, $identifier);
+            my ($principal, $msg) = $self->PrincipalForSpec($type, $identifier);
             if (!$principal) {
-                return { error => 'Unable to find row' };
+                return { error => $msg || 'Unable to find row' };
             }
 
             $has_search = 1;
