@@ -256,7 +256,7 @@ sub InnerRoleQuery {
 
         push @query, qq[ ( ];
         for my $term (split ' ', $args{right_search}) {
-            my $quoted = $RT::Handle->Quote($term);
+            my $quoted = $RT::Handle->Quote('%' . $term . '%');
             push @query, qq[
                 main.RightName $LIKE $quoted OR
             ],
