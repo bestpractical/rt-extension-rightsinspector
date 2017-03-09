@@ -664,6 +664,27 @@ sub InjectSerializedWithInnerRoleDetails {
 
         if ($inner_count) {
             $serialized->{principal}{detail_extra} = $self->CurrentUser->loc("(+[quant,_1,other,others])", $inner_count);
+
+            if ($inner_class eq 'Ticket' && $primary_principal->isa('RT::User')) {
+                my $query;
+                if ($ACE->Object->isa('RT::Queue')) {
+                    my $name = $ACE->Object->Name;
+                    $name =~ s/(['\\])/\\$1/g;
+                    $query .= "Queue = '$name' AND ";
+                }
+                my $user_name = $primary_principal->Name;
+                $user_name =~ s/(['\\])/\\$1/g;
+
+                my $role_name = $principal->Name;
+                $role_name =~ s/(['\\])/\\$1/g;
+
+                my $role_term = $principal->isa('RT::Group') ? $role_name
+                              : "CustomRole.{$role_name}";
+
+                $query .= "$role_term.Name = '$user_name'";
+
+                $serialized->{principal}{detail_extra_url} = RT->Config->Get('WebURL') . 'Search/Results.html?Query=' . _EscapeURI($query);
+            }
         }
     }
 }
