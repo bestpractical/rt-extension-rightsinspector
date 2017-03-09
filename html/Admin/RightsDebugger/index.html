@@ -24,7 +24,18 @@
     </span>
 
     <span class="detail">
-      {{{detail_highlighted}}}
+      {{#if detail_url}}
+        <a target="_blank" href="{{detail_url}}">{{{detail_highlighted}}}</a>
+      {{else}}
+        {{{detail_highlighted}}}
+      {{/if}}
+
+      {{#if detail_extra_url}}
+        <a target="_blank" href="{{detail_extra_url}}">{{detail_extra}}</a>
+      {{else}}
+        {{detail_extra}}
+      {{/if}}
+
       {{#if disabled}}
         (disabled)
       {{/if}}
