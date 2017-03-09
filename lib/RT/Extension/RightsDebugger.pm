@@ -8,6 +8,7 @@ RT->AddStyleSheets("rights-debugger.css");
 RT->AddJavaScript("rights-debugger.js");
 RT->AddJavaScript("handlebars-4.0.6.min.js");
 
+my $PageLimit = 100;
 
 $RT::Interface::Web::WHITELISTED_COMPONENT_ARGS{'/Admin/RightsDebugger/index.html'} = ['Principal', 'Object', 'Right'];
 
@@ -306,7 +307,7 @@ sub Search {
 
     $ACL->UnLimit unless $has_search;
 
-    $ACL->RowsPerPage(100);
+    $ACL->RowsPerPage($PageLimit);
 
     my $continueAfter;
 
