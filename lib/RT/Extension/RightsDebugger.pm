@@ -22,23 +22,7 @@ sub _EscapeHTML {
 }
 
 sub _RegexifyTermForHighlight {
-    my $term = shift;
-
-    $term ||= '';
-
-    # strip user:root leaving just root
-    $term =~ s{
-        ^
-            \s*
-            (u|user|g|group)
-            \s*
-            [:#]
-            \s*
-            (.+?)
-            \s*
-        $
-    }{$2}xi;
-
+    my $term = shift || '';
     return qr/\Q$term\E/i;
 }
 
@@ -69,8 +53,9 @@ sub _HighlightTerm {
 }
 
 sub _HighlightSerializedForSearch {
-    my $serialized = shift;
-    my $args       = shift;
+    my $serialized   = shift;
+    my $args         = shift;
+    my $regex_search = shift;
 
     # highlight matching terms
     $serialized->{right_highlighted} = _HighlightTerm($serialized->{right}, [split ' ', $args->{right} || '']);
@@ -79,8 +64,20 @@ sub _HighlightSerializedForSearch {
         for my $record ($serialized->{$key}, $serialized->{$key}->{primary_record}) {
             next if !$record;
 
-            for my $column (qw/label detail/) {
-                $record->{$column . '_highlighted'} = _HighlightTerm($record->{$column}, $args->{$key});
+            # if we used a regex search for this record, then highlight the
+            # text that the regex matched
+            if ($regex_search->{$key}) {
+                for my $column (qw/label detail/) {
+                    $record->{$column . '_highlighted'} = _HighlightTerm($record->{$column}, $args->{$key});
+                }
+            }
+            # otherwise we used a search like user:root and so we should
+            # highlight just that user completely (but not its parent group)
+            else {
+                $record->{'highlight'} = $record->{primary_record} ? 0 : 1;
+                for my $column (qw/label detail/) {
+                    $record->{$column . '_highlighted'} = _EscapeHTML($record->{$column});
+                }
             }
         }
     }
@@ -320,7 +317,7 @@ sub Search {
             }
         }
 
-        _HighlightSerializedForSearch($serialized, \%args);
+        _HighlightSerializedForSearch($serialized, \%args, \%use_regex_search_for);
 
         push @results, $serialized;
     }

@@ -15,7 +15,7 @@
 
 <script type="text/x-template" id="debugger-record-template">
   <span class="record {{#if disabled}}disabled{{/if}}">
-    <span class="name">
+    <span class="name {{#if highlight}}match{{/if}}">
       {{#if url}}
         <a target="_blank" href="{{url}}">{{{label_highlighted}}}</a>
       {{else}}
