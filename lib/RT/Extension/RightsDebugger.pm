@@ -2,6 +2,18 @@ package RT::Extension::RightsDebugger;
 use strict;
 use warnings;
 
+# glossary:
+#     inner role - being granted a right by way of ticket role membership
+#                  which is treated in a special way in RT. this is because
+#                  members of ticket AdminCc group are neither members of
+#                  the queue AdminCc group nor the system AdminCc group.
+#                  this means we have to do a really gnarly joins to recover
+#                  such ACLs.
+#     principal  - the recipient of a privilege; e.g. user or group
+#     object     - the scope of the privilege; e.g. queue or system
+#     record     - generalization of principal and object since rendering
+#                  and whatnot can share code
+
 our $VERSION = '0.01';
 
 RT->AddStyleSheets("rights-debugger.css");
@@ -180,6 +192,101 @@ sub ObjectForSpec {
     return undef;
 }
 
+our %ParentMap = (
+    'RT::Ticket' => [Queue => 'RT::Queue'],
+    'RT::Asset' => [Catalog => 'RT::Catalog'],
+);
+
+# see inner role glossary entry
+# this has three modes, depending on which parameters are passed
+# - principal_id but no inner_id: find tickets/assets this principal
+#   has permissions for
+# - inner_id but no principal_id: find the queue/system permissions that affect
+#   this ticket
+# - principal and inner_id: find all permissions this principal has on
+#   this "inner" object
+# there's no analagous query in the RT codebase because it uses a caching approach;
+# see RT::Tickets::_RolesCanSee
+sub InnerRoleQuery {
+    my $self = shift;
+    my %args = (
+        inner_class  => '', # RT::Ticket, RT::Asset
+        principal_id => undef,
+        inner_id     => undef,
+        right_search => undef,
+        @_,
+    );
+
+    my $inner_class  = $args{inner_class};
+    my $principal_id = $args{principal_id};
+    my $inner_id     = $args{inner_id};
+    my $inner_table  = $inner_class->Table;
+
+    my ($parent_column, $parent_class) = @{ $ParentMap{$inner_class} || [] }
+        or die "No parent mapping specified for $inner_class";
+    my $parent_table = $parent_class->Table;
+
+    my @query = qq[
+        SELECT main.id,
+               MIN(InnerRecords.id) AS example_record,
+               COUNT(InnerRecords.id)-1 AS other_count
+        FROM ACL AS main
+        JOIN Groups AS ParentRoles
+             ON main.PrincipalId = ParentRoles.id
+        JOIN $inner_table AS InnerRecords
+             ON   (ParentRoles.Domain = '$parent_class-Role' AND InnerRecords.$parent_column = ParentRoles.Instance)
+                OR ParentRoles.Domain = 'RT::System-Role'
+        JOIN Groups AS InnerRoles
+             ON  InnerRoles.Instance = InnerRecords.Id
+             AND InnerRoles.Name = main.PrincipalType
+    ];
+    if ($principal_id) {
+        push @query, qq[
+            JOIN CachedGroupMembers AS CGM
+                 ON CGM.GroupId = InnerRoles.id
+        ];
+    }
+
+    push @query, qq[ WHERE ];
+
+    if ($args{right_search}) {
+        my $LIKE = RT->Config->Get('DatabaseType') eq 'Pg' ? 'ILIKE' : 'LIKE';
+
+        push @query, qq[ ( ];
+        for my $term (split ' ', $args{right_search}) {
+            my $quoted = $RT::Handle->Quote($term);
+            push @query, qq[
+                main.RightName $LIKE $quoted OR
+            ],
+        }
+        push @query, qq[main.RightName $LIKE 'SuperUser'];
+        push @query, qq[ ) AND ];
+    }
+
+    if ($principal_id) {
+        push @query, qq[
+             CGM.MemberId = $principal_id AND
+             CGM.Disabled = 0 AND
+        ];
+    }
+    else {
+        #push @query, qq[
+        #         CGM.MemberId = $principal_id AND
+        #];
+    }
+
+    push @query, qq[
+             InnerRecords.id = $inner_id AND
+    ] if $inner_id;
+
+    push @query, qq[
+             InnerRoles.Domain = '$inner_class-Role'
+        GROUP BY main.id
+    ];
+
+    return join "\n", @query;
+}
+
 # key entry point into this extension; takes a query (principal, object, right)
 # and produces a list of highlighted results
 sub Search {
@@ -324,7 +431,35 @@ sub Search {
         }
     }
 
+    # now we need to address the unfortunate fact that ticket role
+    # members are not listed as queue role members. the way we do this
+    # is with a many-join query to map queue roles to ticket roles
+    if ($primary_records{principal} || $primary_records{object}) {
+        for my $inner_class (keys %ParentMap) {
+            next if $primary_records{object}
+                 && !$primary_records{object}->isa($inner_class);
+
+            my $query = $self->InnerRoleQuery(
+                inner_class  => $inner_class,
+                principal_id => ($primary_records{principal} ? $primary_records{principal}->Id : undef),
+                inner_id     => ($primary_records{object} ? $primary_records{object}->Id : undef),
+                right_search => $args{right},
             );
+            my $sth = $ACL->_Handle->SimpleQuery($query);
+            my @acl_ids;
+            while (my ($acl_id, $record_id, $other_count) = $sth->fetchrow_array) {
+                push @acl_ids, $acl_id;
+            }
+            if (@acl_ids) {
+                $search_paren ||= do { $ACL->_OpenParen('search'); 1 };
+                $ACL->Limit(
+                    SUBCLAUSE => 'search',
+                    FIELD     => 'id',
+                    OPERATOR  => 'IN',
+                    VALUE     => \@acl_ids,
+                    ENTRYAGGREGATOR => 'OR',
+                );
+            }
         }
     }
 
