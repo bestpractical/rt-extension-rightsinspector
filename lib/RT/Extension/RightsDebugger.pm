@@ -517,8 +517,18 @@ sub URLForRecord {
         return RT->Config->Get('WebURL') . 'Admin/Users/Modify.html?id=' . $id;
     }
     elsif ($record->isa('RT::Group')) {
-        return undef unless $record->Domain eq 'UserDefined';
-        return RT->Config->Get('WebURL') . 'Admin/Groups/Modify.html?id=' . $id;
+        if ($record->Domain eq 'UserDefined') {
+            return RT->Config->Get('WebURL') . 'Admin/Groups/Modify.html?id=' . $id;
+        }
+        elsif ($record->Domain eq 'RT::System-Role') {
+            return RT->Config->Get('WebURL') . 'Admin/Global/GroupRights.html#acl-' . $id;
+        }
+        elsif ($record->Domain eq 'RT::Queue-Role') {
+            return RT->Config->Get('WebURL') . 'Admin/Queues/GroupRights.html?id=' . $record->Instance . '#acl-' . $id;
+        }
+        else {
+            return undef;
+        }
     }
     elsif ($record->isa('RT::CustomField')) {
         return RT->Config->Get('WebURL') . 'Admin/CustomFields/Modify.html?id=' . $id;
