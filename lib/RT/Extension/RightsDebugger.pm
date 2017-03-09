@@ -8,7 +8,9 @@ use warnings;
 #                  members of ticket AdminCc group are neither members of
 #                  the queue AdminCc group nor the system AdminCc group.
 #                  this means we have to do a really gnarly joins to recover
-#                  such ACLs.
+#                  such ACLs. to improve comprehensibility we keep track
+#                  of such inner roles then massage the serialized data
+#                  afterwards to reference these implicit relationships
 #     principal  - the recipient of a privilege; e.g. user or group
 #     object     - the scope of the privilege; e.g. queue or system
 #     record     - generalization of principal and object since rendering
@@ -311,6 +313,7 @@ sub Search {
         principal => undef,
         object    => undef,
     );
+    my %inner_role;
 
     if ($args{right}) {
         $has_search = 1;
@@ -449,6 +452,7 @@ sub Search {
             my @acl_ids;
             while (my ($acl_id, $record_id, $other_count) = $sth->fetchrow_array) {
                 push @acl_ids, $acl_id;
+                $inner_role{$acl_id} = [$inner_class, $record_id, $other_count];
             }
             if (@acl_ids) {
                 $search_paren ||= do { $ACL->_OpenParen('search'); 1 };
@@ -494,7 +498,7 @@ sub Search {
 
     ACE: while (my $ACE = $ACL->Next) {
         $continueAfter = $ACE->Id;
-        my $serialized = $self->SerializeACE($ACE, \%primary_records);
+        my $serialized = $self->SerializeACE($ACE, \%primary_records, \%inner_role);
 
         KEY: for my $key (qw/principal object/) {
 	    # filtering on the serialized record is hacky, but doing the
@@ -535,14 +539,21 @@ sub SerializeACE {
     my $self = shift;
     my $ACE = shift;
     my $primary_records = shift;
+    my $inner_role = shift;
 
-    return {
+    my $serialized = {
         principal      => $self->SerializeRecord($ACE->PrincipalObj, $primary_records->{principal}),
         object         => $self->SerializeRecord($ACE->Object, $primary_records->{object}),
         right          => $ACE->RightName,
         ace            => { id => $ACE->Id },
         disable_revoke => $self->DisableRevoke($ACE),
     };
+
+    if ($inner_role->{$ACE->Id}) {
+        $self->InjectSerializedWithInnerRoleDetails($serialized, $ACE, $inner_role->{$ACE->Id}, $primary_records);
+    }
+
+    return $serialized;
 }
 
 # should the "Revoke" button be disabled? by default it is for the two required
@@ -625,6 +636,36 @@ sub SerializeRecord {
     };
 
     return $serialized;
+}
+
+sub InjectSerializedWithInnerRoleDetails {
+    my $self = shift;
+    my $serialized = shift;
+    my $ACE = shift;
+    my $inner_role = shift;
+    my $primary_records = shift;
+
+    my $principal = $self->CanonicalizeRecord($ACE->PrincipalObj);
+    my $object = $self->CanonicalizeRecord($ACE->Object);
+    my $primary_principal = $self->CanonicalizeRecord($primary_records->{principal}) || $principal;
+    my $primary_object = $self->CanonicalizeRecord($primary_records->{object}) || $object;
+
+    if ($principal->isa('RT::Group') || $principal->isa('RT::CustomRole')) {
+        my ($inner_class, $inner_id, $inner_count) = @$inner_role;
+        my $inner_record = $inner_class->new($self->CurrentUser);
+        $inner_record->Load($inner_id);
+
+        $inner_class =~ s/^RT:://i;
+        my $detail = "$inner_class #$inner_id ";
+        $detail .= $principal->isa('RT::Group') ? 'Role' : 'CustomRole';
+
+        $serialized->{principal}{detail} = $detail;
+        $serialized->{principal}{detail_url} = $self->URLForRecord($inner_record);
+
+        if ($inner_count) {
+            $serialized->{principal}{detail_extra} = $self->CurrentUser->loc("(+[quant,_1,other,others])", $inner_count);
+        }
+    }
 }
 
 # primary display label for a record (e.g. user name, ticket subject)
