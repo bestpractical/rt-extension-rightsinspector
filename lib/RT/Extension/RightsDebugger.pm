@@ -178,6 +178,9 @@ sub ObjectForSpec {
     elsif ($type =~ /^class$/i) {
         $record = RT::Class->new($self->CurrentUser);
     }
+    elsif ($type =~ /^cf|customfield$/i) {
+        $record = RT::CustomField->new($self->CurrentUser);
+    }
     elsif ($type =~ /^(g|group)$/i) {
         return $self->PrincipalForSpec($type, $identifier);
     }
@@ -340,7 +343,7 @@ sub Search {
         if (my ($type, $identifier) = $args{object} =~ m{
             ^
                 \s*
-                (t|ticket|q|queue|asset|catalog|a|article|class|g|group)
+                (t|ticket|q|queue|asset|catalog|a|article|class|g|group|cf|customfield)
                 \s*
                 [:#]
                 \s*
