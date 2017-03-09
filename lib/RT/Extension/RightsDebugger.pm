@@ -21,17 +21,24 @@ sub _EscapeHTML {
     return $s;
 }
 
-sub _RegexifyTermForHighlight {
+# used to convert a search term (e.g. "root") into a regex for highlighting
+# in the UI. potentially useful hook point for implementing say, "ro*t"
+sub RegexifyTermForHighlight {
+    my $self = shift;
     my $term = shift || '';
     return qr/\Q$term\E/i;
 }
 
-sub _HighlightTerm {
-    my ($text, $term) = @_;
+# takes a text label and returns escaped html, highlighted using the search
+# term(s)
+sub HighlightTextForSearch {
+    my $self = shift;
+    my $text = shift;
+    my $term = shift;
 
     my $re = ref($term) eq 'ARRAY'
-           ? join '|', map { _RegexifyTermForHighlight($_) } @$term
-           : _RegexifyTermForHighlight($term);
+           ? join '|', map { $self->RegexifyTermForHighlight($_) } @$term
+           : $self->RegexifyTermForHighlight($term);
 
     # if $term is an arrayref, make sure we qr-ify it
     # without this, then if $term has no elements, we interpolate $re
@@ -52,13 +59,16 @@ sub _HighlightTerm {
     return $text; # now escaped as html
 }
 
-sub _HighlightSerializedForSearch {
+# takes a serialized result and highlights its labels according to the search
+# terms
+sub HighlightSerializedForSearch {
+    my $self         = shift;
     my $serialized   = shift;
     my $args         = shift;
     my $regex_search = shift;
 
     # highlight matching terms
-    $serialized->{right_highlighted} = _HighlightTerm($serialized->{right}, [split ' ', $args->{right} || '']);
+    $serialized->{right_highlighted} = $self->HighlightTextForSearch($serialized->{right}, [split ' ', $args->{right} || '']);
 
     for my $key (qw/principal object/) {
         for my $record ($serialized->{$key}, $serialized->{$key}->{primary_record}) {
@@ -68,7 +78,7 @@ sub _HighlightSerializedForSearch {
             # text that the regex matched
             if ($regex_search->{$key}) {
                 for my $column (qw/label detail/) {
-                    $record->{$column . '_highlighted'} = _HighlightTerm($record->{$column}, $args->{$key});
+                    $record->{$column . '_highlighted'} = $self->HighlightTextForSearch($record->{$column}, $args->{$key});
                 }
             }
             # otherwise we used a search like user:root and so we should
@@ -85,7 +95,8 @@ sub _HighlightSerializedForSearch {
     return;
 }
 
-sub _PrincipalForSpec {
+# takes "u:root" "group:37" style specs and returns the RT::Principal
+sub PrincipalForSpec {
     my $self       = shift;
     my $type       = shift;
     my $identifier = shift;
@@ -117,7 +128,9 @@ sub _PrincipalForSpec {
     return undef;
 }
 
-sub _ObjectForSpec {
+# takes "t#1" "queue:General", "asset:37" style specs and returns that object
+# limited to thinks you can grant rights on
+sub ObjectForSpec {
     my $self       = shift;
     my $type       = shift;
     my $identifier = shift;
@@ -143,7 +156,7 @@ sub _ObjectForSpec {
         $record = RT::Class->new($self->CurrentUser);
     }
     elsif ($type =~ /^(g|group)$/i) {
-        return $self->_PrincipalForSpec($type, $identifier);
+        return $self->PrincipalForSpec($type, $identifier);
     }
     else {
         RT->Logger->debug("Unexpected type '$type'");
@@ -156,6 +169,8 @@ sub _ObjectForSpec {
     return undef;
 }
 
+# key entry point into this extension; takes a query (principal, object, right)
+# and produces a list of highlighted results
 sub Search {
     my $self = shift;
     my %args = (
@@ -191,7 +206,7 @@ sub Search {
                 \s*
             $
         }xi) {
-            my $record = $self->_ObjectForSpec($type, $identifier);
+            my $record = $self->ObjectForSpec($type, $identifier);
             if (!$record) {
                 return { error => 'Unable to find row' };
             }
@@ -219,7 +234,7 @@ sub Search {
                 \s*
             $
         }xi) {
-            my $principal = $self->_PrincipalForSpec($type, $identifier);
+            my $principal = $self->PrincipalForSpec($type, $identifier);
             if (!$principal) {
                 return { error => 'Unable to find row' };
             }
@@ -317,7 +332,7 @@ sub Search {
             }
         }
 
-        _HighlightSerializedForSearch($serialized, \%args, \%use_regex_search_for);
+        $self->HighlightSerializedForSearch($serialized, \%args, \%use_regex_search_for);
 
         push @results, $serialized;
     }
@@ -332,6 +347,8 @@ sub Search {
     };
 }
 
+# takes an ACE (singular version of ACL) and produces a JSON-serializable
+# dictionary for transmitting over the wire
 sub SerializeACE {
     my $self = shift;
     my $ACE = shift;
@@ -346,6 +363,9 @@ sub SerializeACE {
     };
 }
 
+# should the "Revoke" button be disabled? by default it is for the two required
+# system privileges; if such privileges needed to be revoked they can be done
+# through the ordinary ACL management UI
 sub DisableRevoke {
     my $self = shift;
     my $ACE = shift;
@@ -366,6 +386,7 @@ sub DisableRevoke {
     return 0;
 }
 
+# convert principal to its user/group, custom role group to its custom role, etc
 sub CanonicalizeRecord {
     my $self = shift;
     my $record = shift;
@@ -395,6 +416,8 @@ sub CanonicalizeRecord {
     return $record;
 }
 
+# takes a user, group, ticket, queue, etc and produces a JSON-serializable
+# dictionary
 sub SerializeRecord {
     my $self = shift;
     my $record = shift;
@@ -422,6 +445,7 @@ sub SerializeRecord {
     return $serialized;
 }
 
+# primary display label for a record (e.g. user name, ticket subject)
 sub LabelForRecord {
     my $self = shift;
     my $record = shift;
@@ -433,6 +457,7 @@ sub LabelForRecord {
     return $record->Name;
 }
 
+# boolean indicating whether the record should be labeled as disabled in the UI
 sub DisabledForRecord {
     my $self = shift;
     my $record = shift;
@@ -444,6 +469,7 @@ sub DisabledForRecord {
     return 0;
 }
 
+# secondary detail information for a record (e.g. ticket #)
 sub DetailForRecord {
     my $self = shift;
     my $record = shift;
@@ -473,6 +499,8 @@ sub DetailForRecord {
     return $type . ' #' . $id;
 }
 
+# most appropriate URL for a record. admin UI preferred, but for objects without
+# admin UI (such as ticket) then user UI is fine
 sub URLForRecord {
     my $self = shift;
     my $record = shift;
