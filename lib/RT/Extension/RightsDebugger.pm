@@ -530,6 +530,9 @@ sub URLForRecord {
         elsif ($record->Domain eq 'RT::Queue-Role') {
             return RT->Config->Get('WebURL') . 'Admin/Queues/GroupRights.html?id=' . $record->Instance . '#acl-' . $id;
         }
+        elsif ($record->Domain eq 'RT::Catalog-Role') {
+            return RT->Config->Get('WebURL') . 'Admin/Assets/Catalogs/GroupRights.html?id=' . $record->Instance . '#acl-' . $id;
+        }
         else {
             return undef;
         }
