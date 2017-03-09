@@ -205,6 +205,27 @@ sub Search {
         object    => undef,
     );
 
+    if ($args{right}) {
+        $has_search = 1;
+        for my $term (split ' ', $args{right}) {
+            $ACL->Limit(
+                FIELD           => 'RightName',
+                OPERATOR        => 'LIKE',
+                VALUE           => $term,
+                CASESENSITIVE   => 0,
+                ENTRYAGGREGATOR => 'OR',
+            );
+        }
+        $ACL->Limit(
+            FIELD           => 'RightName',
+            OPERATOR        => '=',
+            VALUE           => 'SuperUser',
+            ENTRYAGGREGATOR => 'OR',
+        );
+    }
+
+    my $search_paren;
+
     if ($args{object}) {
         if (my ($type, $identifier) = $args{object} =~ m{
             ^
@@ -228,7 +249,22 @@ sub Search {
             $primary_records{object} = $record;
 
             for my $obj ($record, $record->ACLEquivalenceObjects, RT->System) {
-                $ACL->LimitToObject($obj);
+                $search_paren ||= do { $ACL->_OpenParen('search'); 1 };
+                $ACL->Limit(
+                    SUBCLAUSE       => 'search',
+                    FIELD           => 'ObjectType',
+                    OPERATOR        => '=',
+                    VALUE           => ref($obj),
+                    ENTRYAGGREGATOR => 'OR',
+                );
+                $ACL->Limit(
+                    SUBCLAUSE       => 'search',
+                    FIELD           => 'ObjectId',
+                    OPERATOR        => '=',
+                    VALUE           => $obj->Id,
+                    QUOTEVALUE      => 0,
+                    ENTRYAGGREGATOR => 'AND',
+                );
             }
         }
     }
@@ -268,45 +304,45 @@ sub Search {
                 TABLE2 => 'CachedGroupMembers',
                 FIELD2 => 'GroupId',
             );
+            $search_paren ||= do { $ACL->_OpenParen('search'); 1 };
             $ACL->Limit(
+                SUBCLAUSE => 'search',
                 ALIAS => $cgm_alias,
                 FIELD => 'Disabled',
+                QUOTEVALUE => 0,
                 VALUE => 0,
+                ENTRYAGGREGATOR => 'AND',
             );
             $ACL->Limit(
+                SUBCLAUSE => 'search',
                 ALIAS => $cgm_alias,
                 FIELD => 'MemberId',
                 VALUE => $principal->Id,
+                QUOTEVALUE => 0,
+                ENTRYAGGREGATOR => 'AND',
             );
         }
     }
 
-    if ($args{right}) {
-        $has_search = 1;
-        for my $term (split ' ', $args{right}) {
-            $ACL->Limit(
-                FIELD           => 'RightName',
-                OPERATOR        => 'LIKE',
-                VALUE           => $term,
-                CASESENSITIVE   => 0,
-                ENTRYAGGREGATOR => 'OR',
             );
         }
-        $ACL->Limit(
-            FIELD           => 'RightName',
-            OPERATOR        => '=',
-            VALUE           => 'SuperUser',
-            ENTRYAGGREGATOR => 'OR',
-        );
+    }
+
+    if ($search_paren) {
+        $ACL->_CloseParen('search');
     }
 
     if ($args{continueAfter}) {
         $has_search = 1;
+        $ACL->_OpenParen('paging');
         $ACL->Limit(
-            FIELD    => 'id',
-            OPERATOR => '>',
-            VALUE    => $args{continueAfter},
+            SUBCLAUSE => 'paging',
+            FIELD     => 'id',
+            OPERATOR  => '>',
+            VALUE     => int($args{continueAfter}),
+            QUOTEVALUE => 0,
         );
+        $ACL->_CloseParen('paging');
     }
 
     $ACL->OrderBy(
