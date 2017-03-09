@@ -80,3 +80,9 @@
 #rights-debugger .results .result .primary .detail {
     display: none;
 }
+
+#comp-Admin-RightsDebugger kbd {
+    border: 1px dashed #AAA;
+    background-color: #F6F6F6;
+    padding: 1px;
+}
