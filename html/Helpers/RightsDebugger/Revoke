@@ -2,7 +2,6 @@
 $id => undef
 </%ARGS>
 <%INIT>
-sleep 5;
 my $ACE = RT::ACE->new($session{CurrentUser});
 $ACE->Load($id);
 
