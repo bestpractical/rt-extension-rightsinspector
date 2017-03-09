@@ -1,3 +1,7 @@
+#rights-debugger {
+    display: inline-block;
+}
+
 #rights-debugger .search input, 
 #rights-debugger .results .result .cell {
     display: inline-block;
