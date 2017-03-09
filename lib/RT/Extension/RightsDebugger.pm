@@ -22,6 +22,12 @@ sub _EscapeHTML {
     return $s;
 }
 
+sub _EscapeURI {
+    my $s = shift;
+    RT::Interface::Web::EscapeURI(\$s);
+    return $s;
+}
+
 # used to convert a search term (e.g. "root") into a regex for highlighting
 # in the UI. potentially useful hook point for implementing say, "ro*t"
 sub RegexifyTermForHighlight {
