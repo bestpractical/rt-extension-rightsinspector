@@ -337,8 +337,6 @@ sub Search {
         );
     }
 
-    my $search_paren;
-
     if ($args{object}) {
         if (my ($type, $identifier) = $args{object} =~ m{
             ^
@@ -362,25 +360,28 @@ sub Search {
             $primary_records{object} = $record;
 
             for my $obj ($record, $record->ACLEquivalenceObjects, RT->System) {
-                $search_paren ||= do { $ACL->_OpenParen('search'); 1 };
+                $ACL->_OpenParen('object');
                 $ACL->Limit(
-                    SUBCLAUSE       => 'search',
+                    SUBCLAUSE          => 'object',
                     FIELD           => 'ObjectType',
                     OPERATOR        => '=',
                     VALUE           => ref($obj),
                     ENTRYAGGREGATOR => 'OR',
                 );
                 $ACL->Limit(
-                    SUBCLAUSE       => 'search',
+                    SUBCLAUSE          => 'object',
                     FIELD           => 'ObjectId',
                     OPERATOR        => '=',
                     VALUE           => $obj->Id,
                     QUOTEVALUE      => 0,
                     ENTRYAGGREGATOR => 'AND',
                 );
+                $ACL->_CloseParen('object');
             }
         }
     }
+
+    my $principal_paren = 0;
 
     if ($args{principal}) {
         if (my ($type, $identifier) = $args{principal} =~ m{
@@ -417,18 +418,19 @@ sub Search {
                 TABLE2 => 'CachedGroupMembers',
                 FIELD2 => 'GroupId',
             );
-            $search_paren ||= do { $ACL->_OpenParen('search'); 1 };
+            $ACL->_OpenParen('principal');
+            $principal_paren = 1;
             $ACL->Limit(
-                SUBCLAUSE => 'search',
                 ALIAS => $cgm_alias,
+                SUBCLAUSE => 'principal',
                 FIELD => 'Disabled',
                 QUOTEVALUE => 0,
                 VALUE => 0,
                 ENTRYAGGREGATOR => 'AND',
             );
             $ACL->Limit(
-                SUBCLAUSE => 'search',
                 ALIAS => $cgm_alias,
+                SUBCLAUSE => 'principal',
                 FIELD => 'MemberId',
                 VALUE => $principal->Id,
                 QUOTEVALUE => 0,
@@ -458,9 +460,13 @@ sub Search {
                 $inner_role{$acl_id} = [$inner_class, $record_id, $other_count];
             }
             if (@acl_ids) {
-                $search_paren ||= do { $ACL->_OpenParen('search'); 1 };
+                if (!$principal_paren) {
+                    $ACL->_OpenParen('principal');
+                    $principal_paren = 1;
+                }
+
                 $ACL->Limit(
-                    SUBCLAUSE => 'search',
+                    SUBCLAUSE => 'principal',
                     FIELD     => 'id',
                     OPERATOR  => 'IN',
                     VALUE     => \@acl_ids,
@@ -470,21 +476,16 @@ sub Search {
         }
     }
 
-    if ($search_paren) {
-        $ACL->_CloseParen('search');
-    }
+    $ACL->_CloseParen('principal') if $principal_paren;
 
     if ($args{continueAfter}) {
         $has_search = 1;
-        $ACL->_OpenParen('paging');
         $ACL->Limit(
-            SUBCLAUSE => 'paging',
             FIELD     => 'id',
             OPERATOR  => '>',
             VALUE     => int($args{continueAfter}),
             QUOTEVALUE => 0,
         );
-        $ACL->_CloseParen('paging');
     }
 
     $ACL->OrderBy(
