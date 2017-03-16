@@ -22,6 +22,7 @@ jQuery(function () {
 
     var revoking = {};
     var existingRequest;
+    var requestTimer;
 
     var buttonForAction = function (action) {
         return display.find('.revoke button[data-action="' + action + '"]');
@@ -45,6 +46,11 @@ jQuery(function () {
     var requestPage;
     requestPage = function (search, continueAfter) {
         search.continueAfter = continueAfter;
+
+        if (requestTimer) {
+            clearTimeout(requestTimer);
+            requestTimer = null;
+        }
 
         existingRequest = jQuery.ajax({
             url: form.attr('action'),
@@ -98,7 +104,7 @@ jQuery(function () {
         });
     };
 
-    var beginSearch = function () {
+    var beginSearch = function (delay) {
         form.removeClass('continuing-load').addClass('awaiting-first-result');
         form.find('button').addClass('ui-state-disabled').prop('disabled', true);
 
@@ -109,11 +115,23 @@ jQuery(function () {
             search[field.name] = field.value;
         });
 
+        if (requestTimer) {
+            clearTimeout(requestTimer);
+            requestTimer = null;
+        }
+
         if (existingRequest) {
             existingRequest.abort();
         }
 
-        requestPage(search, 0);
+        if (delay) {
+            requestTimer = setTimeout(function () {
+                requestPage(search, 0);
+            }, delay);
+        }
+        else {
+            requestPage(search, 0);
+        }
     };
 
     display.on('click', '.revoke button', function (e) {
@@ -148,7 +166,7 @@ jQuery(function () {
     });
 
     form.find('.search input').on('input', function () {
-        beginSearch();
+        beginSearch(200);
     });
 
     beginSearch();
