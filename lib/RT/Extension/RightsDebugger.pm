@@ -710,7 +710,7 @@ sub DisabledForRecord {
     my $self = shift;
     my $record = shift;
 
-    if ($record->can('Disabled')) {
+    if ($record->can('Disabled') || $record->_Accessible('Disabled')) {
         return $record->Disabled;
     }
 
