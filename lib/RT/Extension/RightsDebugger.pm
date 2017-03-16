@@ -527,10 +527,6 @@ sub Search {
         push @results, $serialized;
     }
 
-    # if we didn't fill the whole page, then we know there are
-    # no more rows to consider
-    undef $continueAfter if $ACL->Count < $ACL->RowsPerPage;
-
     return {
         results => \@results,
         continueAfter => $continueAfter,
