@@ -1,5 +1,5 @@
 ---
-abstract: 'RT-Extension-RightsDebugger Extension'
+abstract: 'RT-Extension-RightsInspector Extension'
 author:
   - 'Best Practical Solutions, LLC <modules@bestpractical.com>'
 build_requires:
@@ -13,7 +13,7 @@ license: gpl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
-name: RT-Extension-RightsDebugger
+name: RT-Extension-RightsInspector
 no_index:
   directory:
     - html

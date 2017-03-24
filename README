@@ -1,5 +1,5 @@
 NAME
-    RT-Extension-RightsDebugger -
+    RT-Extension-RightsInspector -
 
 INSTALLATION
     perl Makefile.PL
@@ -10,7 +10,7 @@ INSTALLATION
     Edit your /opt/rt4/etc/RT_SiteConfig.pm
         Add this line:
 
-            Plugin( "RT::Extension::RightsDebugger" );
+            Plugin( "RT::Extension::RightsInspector" );
 
     Clear your mason cache
             rm -rf /opt/rt4/var/mason_data/obj
@@ -23,11 +23,11 @@ AUTHOR
 BUGS
     All bugs should be reported via email to
 
-        L<bug-RT-Extension-RightsDebugger@rt.cpan.org|mailto:bug-RT-Extension-RightsDebugger@rt.cpan.org>
+        L<bug-RT-Extension-RightsInspector@rt.cpan.org|mailto:bug-RT-Extension-RightsInspector@rt.cpan.org>
 
     or via the web at
 
-        L<rt.cpan.org|http://rt.cpan.org/Public/Dist/Display.html?Name=RT-Extension-RightsDebugger>.
+        L<rt.cpan.org|http://rt.cpan.org/Public/Dist/Display.html?Name=RT-Extension-RightsInspector>.
 
 COPYRIGHT
     This extension is Copyright (C) 2017 Best Practical Solutions, LLC.

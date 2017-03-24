@@ -1,4 +1,4 @@
-package RT::Extension::RightsDebugger;
+package RT::Extension::RightsInspector;
 use strict;
 use warnings;
 
@@ -18,13 +18,13 @@ use warnings;
 
 our $VERSION = '0.01';
 
-RT->AddStyleSheets("rights-debugger.css");
-RT->AddJavaScript("rights-debugger.js");
+RT->AddStyleSheets("rights-inspector.css");
+RT->AddJavaScript("rights-inspector.js");
 RT->AddJavaScript("handlebars-4.0.6.min.js");
 
 my $PageLimit = 100;
 
-$RT::Interface::Web::WHITELISTED_COMPONENT_ARGS{'/Admin/RightsDebugger/index.html'} = ['Principal', 'Object', 'Right'];
+$RT::Interface::Web::WHITELISTED_COMPONENT_ARGS{'/Admin/RightsInspector/index.html'} = ['Principal', 'Object', 'Right'];
 
 sub CurrentUser {
     return $HTML::Mason::Commands::session{CurrentUser};
@@ -803,7 +803,7 @@ sub URLForRecord {
 
 =head1 NAME
 
-RT-Extension-RightsDebugger - 
+RT-Extension-RightsInspector - 
 
 =head1 INSTALLATION
 
@@ -821,7 +821,7 @@ This step may require root permissions.
 
 Add this line:
 
-    Plugin( "RT::Extension::RightsDebugger" );
+    Plugin( "RT::Extension::RightsInspector" );
 
 =item Clear your mason cache
 
@@ -839,11 +839,11 @@ Best Practical Solutions, LLC E<lt>modules@bestpractical.comE<gt>
 
 All bugs should be reported via email to
 
-    L<bug-RT-Extension-RightsDebugger@rt.cpan.org|mailto:bug-RT-Extension-RightsDebugger@rt.cpan.org>
+    L<bug-RT-Extension-RightsInspector@rt.cpan.org|mailto:bug-RT-Extension-RightsInspector@rt.cpan.org>
 
 or via the web at
 
-    L<rt.cpan.org|http://rt.cpan.org/Public/Dist/Display.html?Name=RT-Extension-RightsDebugger>.
+    L<rt.cpan.org|http://rt.cpan.org/Public/Dist/Display.html?Name=RT-Extension-RightsInspector>.
 
 =head1 COPYRIGHT
 

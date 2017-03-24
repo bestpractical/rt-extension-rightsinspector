@@ -1,6 +1,6 @@
 jQuery(function () {
-    var recordTemplate = jQuery('script#debugger-record-template').html();
-    var resultTemplate = jQuery('script#debugger-result-template').html();
+    var recordTemplate = jQuery('script#inspector-record-template').html();
+    var resultTemplate = jQuery('script#inspector-result-template').html();
     if (!recordTemplate || !resultTemplate) {
         return;
     }
@@ -16,7 +16,7 @@ jQuery(function () {
     });
 
     var renderItem = Handlebars.compile(resultTemplate);
-    var form = jQuery('form#rights-debugger');
+    var form = jQuery('form#rights-inspector');
     var display = form.find('.results');
     var loading = form.find('.search .loading');
 
