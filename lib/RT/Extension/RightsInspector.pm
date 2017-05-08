@@ -316,10 +316,15 @@ sub Search {
         principal => undef,
         object    => undef,
     );
+    my %filter_out;
     my %inner_role;
 
     if ($args{right}) {
         $has_search = 1;
+
+        push @{ $filter_out{right} }, $2
+            while $args{right} =~ s/( |^)!(\S+)/$1/;
+
         for my $term (split ' ', $args{right}) {
             $ACL->Limit(
                 FIELD           => 'RightName',
@@ -338,6 +343,9 @@ sub Search {
     }
 
     if ($args{object}) {
+        push @{ $filter_out{object} }, $2
+            while $args{object} =~ s/( |^)!(\S+)/$1/;
+
         if (my ($type, $identifier) = $args{object} =~ m{
             ^
                 \s*
@@ -384,6 +392,9 @@ sub Search {
     my $principal_paren = 0;
 
     if ($args{principal}) {
+        push @{ $filter_out{principal} }, $2
+            while $args{principal} =~ s/( |^)!(\S+)/$1/;
+
         if (my ($type, $identifier) = $args{principal} =~ m{
             ^
                 \s*
@@ -504,6 +515,22 @@ sub Search {
         $continueAfter = $ACE->Id;
         my $serialized = $self->SerializeACE($ACE, \%primary_records, \%inner_role);
 
+        for my $key (keys %filter_out) {
+            for my $term (@{ $filter_out{$key} }) {
+                my $re = qr/\Q$term\E/i;
+                if ($key eq 'right') {
+                    next ACE if $serialized->{right} =~ $re;
+                }
+                else {
+                    my $record = $serialized->{$key};
+                    next ACE if $record->{class}  =~ $re
+                             || $record->{id}     =~ $re
+                             || $record->{label}  =~ $re
+                             || $record->{detail} =~ $re;
+                }
+            }
+        }
+
         KEY: for my $key (qw/principal object/) {
 	    # filtering on the serialized record is hacky, but doing the
 	    # searching in SQL is absolutely a nonstarter
@@ -511,6 +538,8 @@ sub Search {
 
             if (my $term = $args{$key}) {
                 my $record = $serialized->{$key};
+                $term =~ s/^\s+//;
+                $term =~ s/\s+$//;
                 my $re = qr/\Q$term\E/i;
                 next KEY if $record->{class}  =~ $re
                          || $record->{id}     =~ $re

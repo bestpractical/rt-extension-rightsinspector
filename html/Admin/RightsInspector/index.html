@@ -32,6 +32,10 @@ ticket's or asset's role groups. Similarly, searching for a specific
 ticket with syntax like <kbd>t:10</kbd> will show you the permissions
 for that single ticket and its queue.</p>
 
+<p>Any word prefixed with a <kbd>!</kbd> will be filtered out from the
+search results, for example searching for right
+<kbd>ShowTicket !SuperUser</kbd>.</p>
+
 <p>For example, to help answer the question "why can Joe see asset #39?"
 you may specify principal <kbd>user:Joe</kbd>, object <kbd>asset
 #39</kbd>, right <kbd>ShowAsset</kbd>. This will produce multiple
