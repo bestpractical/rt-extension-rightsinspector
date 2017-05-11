@@ -16,7 +16,7 @@ use warnings;
 #     record     - generalization of principal and object since rendering
 #                  and whatnot can share code
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 RT->AddStyleSheets("rights-inspector.css");
 RT->AddJavaScript("rights-inspector.js");
